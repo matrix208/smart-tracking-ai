@@ -1,7 +1,6 @@
 using Tracking.SDK.Interfaces;
 
-namespace Tracking.Core.Services;
-
+namespace Tracking.PluginLoader.Services;
 public sealed class ProtocolRegistry
 {
     private readonly Dictionary<string, IProtocolPlugin> _plugins = new();

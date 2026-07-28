@@ -1,26 +1,52 @@
+using Tracking.PluginLoader.Models;
 using Tracking.SDK.Interfaces;
 
-namespace Tracking.Core.Services;
+namespace Tracking.PluginLoader.Services;
 
 public sealed class PluginManager
 {
-    private readonly List<IProtocolPlugin> _plugins = [];
+    private readonly PluginScanner _scanner;
+    private readonly ManifestReader _manifestReader;
+    private readonly AssemblyPluginLoader _loader;
+    private readonly ProtocolRegistry _registry;
 
-    public void Register(IProtocolPlugin plugin)
+    public PluginManager(
+        PluginScanner scanner,
+        ManifestReader manifestReader,
+        AssemblyPluginLoader loader,
+        ProtocolRegistry registry)
     {
-        _plugins.Add(plugin);
+        _scanner = scanner;
+        _manifestReader = manifestReader;
+        _loader = loader;
+        _registry = registry;
     }
 
-    public IReadOnlyList<IProtocolPlugin> All => _plugins;
+    public IReadOnlyCollection<IProtocolPlugin> Plugins
+        => _registry.Plugins;
+
+    public async Task LoadAllAsync(
+        string repositoryFolder,
+        CancellationToken cancellationToken = default)
+    {
+        var folders = _scanner.Scan(repositoryFolder);
+
+        foreach (var folder in folders)
+        {
+            PluginPackage package =
+                await _manifestReader.ReadAsync(folder, cancellationToken);
+
+            var plugin = _loader.Load(package);
+
+            _registry.Register(plugin);
+
+            Console.WriteLine(
+                $"Loaded plugin: {plugin.Manifest.Name} ({plugin.Manifest.Id})");
+        }
+    }
 
     public IProtocolPlugin? Find(ReadOnlySpan<byte> packet)
     {
-        foreach (var plugin in _plugins)
-        {
-            if (plugin.CanHandle(packet))
-                return plugin;
-        }
-
-        return null;
+        return _registry.Find(packet);
     }
 }

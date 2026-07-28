@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Tracking.Plugin.Abstractions\Tracking.Plugin.Abstractions.csproj" />
+    <ProjectReference Include="..\Tracking.PluginLoader\Tracking.PluginLoader.csproj" />
+    <ProjectReference Include="..\Tracking.Package\Tracking.Package.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

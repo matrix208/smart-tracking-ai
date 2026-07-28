@@ -10,6 +10,8 @@
     <Project Path="src/Core/Tracking.Network/Tracking.Network.csproj" />
     <Project Path="src/Core/Tracking.Package/Tracking.Package.csproj" />
     <Project Path="src/Core/Tracking.Pipeline/Tracking.Pipeline.csproj" />
+    <Project Path="src/Core/Tracking.Plugin.Abstractions/Tracking.Plugin.Abstractions.csproj" />
+    <Project Path="src/Core/Tracking.Plugin.Runtime/Tracking.Plugin.Runtime.csproj" />
     <Project Path="src/Core/Tracking.PluginLoader/Tracking.PluginLoader.csproj" />
     <Project Path="src/Core/Tracking.PluginManager/Tracking.PluginManager.csproj" />
     <Project Path="src/Core/Tracking.SDK/Tracking.SDK.csproj" />
