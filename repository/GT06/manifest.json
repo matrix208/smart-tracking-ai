@@ -1,0 +1,24 @@
+{
+  "packageId": "gt06",
+  "displayName": "GT06 Protocol",
+  "description": "GT06 GPS Tracker Protocol",
+  "version": "1.0.0",
+  "sdkVersion": "1.0.0",
+  "minServerVersion": "1.0.0",
+  "manufacturer": "Tracking Platform",
+  "company": "Talal",
+  "author": "Talal",
+  "type": 0,
+  "assembly": "lib/Tracking.Plugin.GT06.dll",
+  "entryPoint": "Tracking.Plugin.GT06.Gt06Plugin",
+  "icon": "icon.png",
+  "readme": "README.md",
+  "license": "LICENSE",
+  "defaultPort": 5001,
+  "supportsTcp": true,
+  "supportsUdp": false,
+  "permissions": [
+    "Network"
+  ],
+  "dependencies": []
+}

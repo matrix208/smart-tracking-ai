@@ -1,0 +1,30 @@
+# Build
+bin/
+obj/
+
+# Visual Studio
+.vs/
+.vscode/
+
+# Rider
+.idea/
+
+# User files
+*.user
+*.suo
+
+# macOS
+.DS_Store
+
+# Test
+TestResults/
+
+# Packages
+*.nupkg
+*.snupkg
+
+# Runtime packages
+runtime/packages/
+
+# Archives
+*.zip
