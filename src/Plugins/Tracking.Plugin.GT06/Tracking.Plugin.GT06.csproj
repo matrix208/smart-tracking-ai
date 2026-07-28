@@ -13,6 +13,7 @@
     <ProjectReference Include="..\..\Core\Tracking.SDK\Tracking.SDK.csproj" />
     <ProjectReference Include="..\..\Core\Tracking.Network\Tracking.Network.csproj" />
     <ProjectReference Include="..\..\Core\Tracking.Core\Tracking.Core.csproj" />
+    <ProjectReference Include="..\..\Core\Tracking.Protocol\Tracking.Protocol.csproj" />
   </ItemGroup>
 
 </Project>
