@@ -6,6 +6,13 @@
     <ProjectReference Include="..\..\Core\Tracking.Network\Tracking.Network.csproj" />
     <ProjectReference Include="..\..\Core\Tracking.Pipeline\Tracking.Pipeline.csproj" />
     <ProjectReference Include="..\..\Core\Tracking.Core\Tracking.Core.csproj" />
+    
+        <ProjectReference Include="..\..\Services\Tracking.Persistence\Tracking.Persistence.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\Tracking.Storage\Tracking.Storage.csproj" />
+      </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.10" />
   </ItemGroup>
 
   <PropertyGroup>

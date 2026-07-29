@@ -243,16 +243,100 @@ public ushort PeekUInt16LE()
 
 public string ReadImei()
 {
-    Span<char> chars = stackalloc char[16];
+    Span<char> chars = stackalloc char[15];
 
-    for (int i = 0; i < 8; i++)
+    int index = 0;
+
+    while (index < 15)
     {
         byte b = ReadByte();
 
-        chars[i * 2] = (char)('0' + ((b >> 4) & 0x0F));
-        chars[i * 2 + 1] = (char)('0' + (b & 0x0F));
+        int high = (b >> 4) & 0x0F;
+        int low = b & 0x0F;
+
+
+        if (high <= 9)
+        {
+            chars[index++] = (char)('0' + high);
+        }
+
+
+        if (index < 15 && low <= 9)
+        {
+            chars[index++] = (char)('0' + low);
+        }
     }
 
+
     return new string(chars);
+}
+// =====================================================
+// UInt24
+// =====================================================
+
+public uint ReadUInt24BigEndian()
+{
+    uint b1 = ReadByte();
+    uint b2 = ReadByte();
+    uint b3 = ReadByte();
+
+    return (b1 << 16) | (b2 << 8) | b3;
+}
+
+// =====================================================
+// BCD
+// =====================================================
+
+public byte ReadBcdByte()
+{
+    byte value = ReadByte();
+
+    return (byte)(((value >> 4) * 10) + (value & 0x0F));
+}
+
+public DateTime ReadDateTimeBcd()
+{
+    int year = 2000 + ReadBcdByte();
+    int month = ReadBcdByte();
+    int day = ReadBcdByte();
+    int hour = ReadBcdByte();
+    int minute = ReadBcdByte();
+    int second = ReadBcdByte();
+
+    return new DateTime(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        DateTimeKind.Utc);
+}
+
+// =====================================================
+// GPS
+// =====================================================
+
+public double ReadCoordinate()
+{
+    uint raw = ReadUInt32BigEndian();
+
+    return raw / 1800000.0;
+}
+
+public (ushort Course, bool RealTime, bool West, bool South)
+    ReadCourseStatus()
+{
+    ushort value = ReadUInt16BigEndian();
+
+    ushort course = (ushort)(value & 0x03FF);
+
+    bool realTime = (value & 0x2000) != 0;
+
+    bool west = (value & 0x0800) != 0;
+
+    bool south = (value & 0x0400) != 0;
+
+    return (course, realTime, west, south);
 }
 }

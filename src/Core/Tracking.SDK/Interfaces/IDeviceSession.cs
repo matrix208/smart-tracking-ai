@@ -8,6 +8,10 @@ public interface IDeviceSession
 
     EndPoint RemoteEndPoint { get; }
 
+    string? DeviceId { get; set; }
+
+    string? ProtocolId { get; set; }
+
     ValueTask SendAsync(ReadOnlyMemory<byte> data);
 
     ValueTask CloseAsync();

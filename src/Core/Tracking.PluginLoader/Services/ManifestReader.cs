@@ -12,7 +12,10 @@ public sealed class ManifestReader
     {
         pluginFolder = Path.GetFullPath(pluginFolder);
 
-        var manifestFile = Path.Combine(pluginFolder, "manifest.json");
+        var manifestFile = Path.Combine(
+            pluginFolder,
+            "Manifest",
+            "manifest.json");
 
         if (!File.Exists(manifestFile))
             throw new FileNotFoundException(
@@ -20,18 +23,20 @@ public sealed class ManifestReader
 
         await using var stream = File.OpenRead(manifestFile);
 
-      var options = new JsonSerializerOptions
-{
-    PropertyNameCaseInsensitive = true
-};
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
 
-var manifest = await JsonSerializer.DeserializeAsync<PluginManifest>(
-    stream,
-    options,
-    cancellationToken);
+        var manifest =
+            await JsonSerializer.DeserializeAsync<PluginManifest>(
+                stream,
+                options,
+                cancellationToken);
 
         if (manifest is null)
-Console.WriteLine($"Manifest type = {manifest?.GetType().FullName}");
+            throw new InvalidDataException(
+                "Invalid plugin manifest.");
 
         Console.WriteLine($"Manifest.Id         = '{manifest.Id}'");
         Console.WriteLine($"Manifest.Name       = '{manifest.Name}'");
@@ -42,8 +47,14 @@ Console.WriteLine($"Manifest type = {manifest?.GetType().FullName}");
         {
             Folder = pluginFolder,
             Manifest = manifest,
+
             AssemblyPath = Path.GetFullPath(
-                Path.Combine(pluginFolder, manifest.Assembly))
+                Path.Combine(
+                    pluginFolder,
+                    "bin",
+                    "Debug",
+                    "net10.0",
+                    manifest.Assembly))
         };
     }
 }

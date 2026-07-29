@@ -28,3 +28,4 @@ runtime/packages/
 
 # Archives
 *.zip
+tracking.db

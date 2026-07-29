@@ -20,6 +20,9 @@
     <Project Path="src/Core/Tracking.Storage/Tracking.Storage.csproj" />
     <Project Path="src/Core/Tracking.Transport/Tracking.Transport.csproj" />
   </Folder>
+  <Folder Name="/src/Infrastructure/">
+    <Project Path="src/Infrastructure/Tracking.Storage/Tracking.Storage.csproj" />
+  </Folder>
   <Folder Name="/src/Packages/">
     <Project Path="src/Packages/Tracking.PackageBuilder/Tracking.PackageBuilder.csproj" />
     <Project Path="src/Packages/Tracking.PackageSigner/Tracking.PackageSigner.csproj" />
@@ -31,6 +34,9 @@
   <Folder Name="/src/Server/">
     <Project Path="src/Server/Tracking.API/Tracking.API.csproj" />
     <Project Path="src/Server/Tracking.Console/Tracking.Console.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/">
+    <Project Path="src/Services/Tracking.Persistence/Tracking.Persistence.csproj" />
   </Folder>
   <Folder Name="/src/Simulator/">
     <Project Path="src/Simulator/Tracking.Simulator/Tracking.Simulator.csproj" />

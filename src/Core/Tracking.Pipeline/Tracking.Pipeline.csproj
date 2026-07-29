@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Tracking.SDK\Tracking.SDK.csproj" />
     <ProjectReference Include="..\Tracking.PluginLoader\Tracking.PluginLoader.csproj" />
+    <ProjectReference Include="..\Tracking.Events\Tracking.Events.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

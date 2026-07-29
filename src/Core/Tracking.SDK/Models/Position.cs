@@ -52,6 +52,58 @@ public sealed class Position
     /// </summary>
     public bool Valid { get; set; }
 
+    // ==========================
+    // Vehicle State
+    // ==========================
+
+    /// <summary>
+    /// حالة الإشعال
+    /// </summary>
+    public bool? Ignition { get; set; }
+
+    /// <summary>
+    /// هل الجهاز متصل بالطاقة الخارجية؟
+    /// </summary>
+    public bool? ExternalPower { get; set; }
+
+    /// <summary>
+    /// نسبة البطارية
+    /// </summary>
+    public double? BatteryLevel { get; set; }
+
+    /// <summary>
+    /// دقة الموقع (HDOP)
+    /// </summary>
+    public double? Hdop { get; set; }
+
+    // ==========================
+    // Cellular Network
+    // ==========================
+
+    /// <summary>
+    /// MCC
+    /// </summary>
+    public int? Mcc { get; set; }
+
+    /// <summary>
+    /// MNC
+    /// </summary>
+    public int? Mnc { get; set; }
+
+    /// <summary>
+    /// LAC
+    /// </summary>
+    public int? Lac { get; set; }
+
+    /// <summary>
+    /// Cell ID
+    /// </summary>
+    public long? CellId { get; set; }
+
+    // ==========================
+    // Extra Protocol Data
+    // ==========================
+
     /// <summary>
     /// بيانات إضافية خاصة بكل بروتوكول
     /// </summary>
