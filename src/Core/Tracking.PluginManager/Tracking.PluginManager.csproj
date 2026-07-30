@@ -6,4 +6,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Tracking.SDK\Tracking.SDK.csproj" />
+    <ProjectReference Include="..\Tracking.PluginLoader\Tracking.PluginLoader.csproj" />
+  </ItemGroup>
+
 </Project>

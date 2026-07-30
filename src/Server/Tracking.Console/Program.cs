@@ -10,13 +10,22 @@ using Tracking.Storage.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Tracking.Core.Workers;
+using Tracking.PluginManager.Services;
+using Tracking.Commands.Channels;
+using Tracking.Commands.Services;
+using Tracking.Commands.Workers;
 
 
 var loader = new PluginLoader();
 
+var pluginManager = new ProtocolPluginManager();
 
-var plugins = await loader.LoadAsync(
-    "src/Plugins");
+var plugins =
+    await loader.LoadAsync(
+        "src/Plugins");
+
+pluginManager.Register(
+    plugins);
 
 
 Console.WriteLine("Plugins Loaded");
@@ -40,7 +49,22 @@ var pipeline = new PacketPipeline(
 
 
 var registry = new DeviceRegistry();
+var commandChannel = new CommandChannel();
 
+var commandService =
+    new CommandService(commandChannel);
+
+var commandDispatcher =
+    new CommandDispatcher(commandService);
+    var commandSequence =
+    new Tracking.Commands.Sequence.CommandSequence();
+
+var commandWorker =
+    new CommandWorker(
+        commandChannel,
+        registry,
+        pluginManager,
+        commandSequence);
 
 
 var positionChannel = new PositionChannel();
@@ -118,7 +142,11 @@ _ = heartbeatWorker.StartAsync(
 Console.WriteLine(
     "Heartbeat Monitor Started");
 
+_ = commandWorker.StartAsync(
+    workerCts.Token);
 
+Console.WriteLine(
+    "Command Worker Started");
 
 // Device Manager
 var deviceManager =
@@ -224,11 +252,48 @@ server.ClientDisconnected += async session =>
 
 };
 
+_ = server.StartAsync(workerCts.Token);
 
+Console.WriteLine("Server Started");
 
-await server.StartAsync();
+while (true)
+{
+    Console.Write("> ");
 
+    var line = Console.ReadLine();
 
+    if (string.IsNullOrWhiteSpace(line))
+        continue;
+
+    var parts = line.Split(
+        ' ',
+        StringSplitOptions.RemoveEmptyEntries);
+
+    if (parts.Length < 2)
+    {
+        Console.WriteLine("Usage: position <imei>");
+        continue;
+    }
+
+    switch (parts[0].ToLowerInvariant())
+    {
+        case "position":
+            await commandDispatcher.RequestPositionAsync(parts[1]);
+            break;
+
+        case "status":
+            await commandDispatcher.RequestStatusAsync(parts[1]);
+            break;
+
+        case "reboot":
+            await commandDispatcher.RebootAsync(parts[1]);
+            break;
+
+        default:
+            Console.WriteLine("Unknown command");
+            break;
+    }
+}
 
 
 static void PrintRegistry(

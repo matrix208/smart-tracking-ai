@@ -7,6 +7,8 @@
     <ProjectReference Include="..\..\Core\Tracking.Pipeline\Tracking.Pipeline.csproj" />
     <ProjectReference Include="..\..\Core\Tracking.Core\Tracking.Core.csproj" />
     
+    <ProjectReference Include="..\..\Core\Tracking.Commands\Tracking.Commands.csproj" />
+    <ProjectReference Include="..\..\Core\Tracking.PluginManager\Tracking.PluginManager.csproj" />
         <ProjectReference Include="..\..\Services\Tracking.Persistence\Tracking.Persistence.csproj" />
     <ProjectReference Include="..\..\Infrastructure\Tracking.Storage\Tracking.Storage.csproj" />
       </ItemGroup>

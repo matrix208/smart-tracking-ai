@@ -10,10 +10,10 @@ namespace Tracking.Plugin.GT06.Plugin;
 
 public sealed class Gt06Plugin : IProtocolPlugin
 {
-    private readonly Gt06Decoder _decoder = new();
-    private readonly LoginEncoder _loginEncoder = new();
-    private readonly HeartbeatEncoder _heartbeatEncoder = new();
-
+  private readonly Gt06Decoder _decoder = new();
+private readonly LoginEncoder _loginEncoder = new();
+private readonly HeartbeatEncoder _heartbeatEncoder = new();
+private readonly CommandEncoder _commandEncoder = new();
     public PluginManifest Manifest => new()
     {
         Id = "gt06",
@@ -51,7 +51,9 @@ public sealed class Gt06Plugin : IProtocolPlugin
         if (decoded is LoginMessage login)
         {
             session.DeviceId = login.Imei;
-            session.ProtocolId = "GT06";
+            session.ProtocolId = "gt06";
+            Console.WriteLine(
+    $"PLUGIN Session={session.GetHashCode()} Protocol={session.ProtocolId}");
 
             // إرسال Login ACK للجهاز
             var ack = _loginEncoder.Encode(login.Serial);
@@ -82,10 +84,11 @@ public sealed class Gt06Plugin : IProtocolPlugin
         return deviceMessage;
     }
 
-    public ValueTask<ReadOnlyMemory<byte>> EncodeAsync(
-        DeviceCommand command,
-        CancellationToken cancellationToken = default)
-    {
-        throw new NotImplementedException();
-    }
+   public ValueTask<ReadOnlyMemory<byte>> EncodeAsync(
+    DeviceCommand command,
+    CancellationToken cancellationToken = default)
+{
+    return ValueTask.FromResult(
+        _commandEncoder.Encode(command));
+}
 }

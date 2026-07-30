@@ -86,7 +86,20 @@ foreach (var point in route)
 }
 
 
-Console.WriteLine("Simulator finished");
+Console.WriteLine("Simulator running...");
+
+while (true)
+{
+    var buffer = new byte[1024];
+
+    var read = await stream.ReadAsync(buffer);
+
+    if (read == 0)
+        break;
+
+    Console.WriteLine(
+        $"SERVER -> {Convert.ToHexString(buffer.AsSpan(0, read))}");
+}
 
 
 

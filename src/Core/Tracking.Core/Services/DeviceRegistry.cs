@@ -150,6 +150,7 @@ public sealed class DeviceRegistry
             {
                 try
                 {
+                    
                     await existing.Session.CloseAsync();
                 }
                 catch

@@ -35,6 +35,9 @@ public sealed class DeviceManager
 
                 if (!string.IsNullOrWhiteSpace(message.DeviceId))
                 {
+                  Console.WriteLine(
+    $"MANAGER Session={session.GetHashCode()} Protocol={session.ProtocolId}");
+    
                     await _registry.ReplaceSessionAsync(
                         message.DeviceId,
                         session);

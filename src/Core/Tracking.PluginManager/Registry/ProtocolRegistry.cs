@@ -1,6 +1,6 @@
 using Tracking.SDK.Interfaces;
 
-namespace Tracking.PluginLoader.Services;
+namespace Tracking.PluginManager.Registry;
 public sealed class ProtocolRegistry
 {
     private readonly Dictionary<string, IProtocolPlugin> _plugins = new();
@@ -26,4 +26,18 @@ public sealed class ProtocolRegistry
 
         return null;
     }
+    public IProtocolPlugin? Get(string protocolId)
+{
+    _plugins.TryGetValue(protocolId, out var plugin);
+    return plugin;
+}
+
+public bool TryGet(
+    string protocolId,
+    out IProtocolPlugin? plugin)
+{
+    return _plugins.TryGetValue(
+        protocolId,
+        out plugin);
+}
 }
