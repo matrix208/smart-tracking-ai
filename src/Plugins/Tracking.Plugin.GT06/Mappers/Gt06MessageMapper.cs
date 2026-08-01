@@ -1,3 +1,4 @@
+using Tracking.Plugin.GT06.Protocol.Messages;
 using Tracking.Plugin.GT06.Protocol.Models;
 using Tracking.SDK.Enums;
 using Tracking.SDK.Models;
@@ -14,6 +15,7 @@ public static class Gt06MessageMapper
             GpsMessage gps => Map(gps),
             HeartbeatMessage heartbeat => Map(heartbeat),
             AlarmMessage alarm => Map(alarm),
+            CommandResponseMessage response => Map(response),
             _ => null
         };
     }
@@ -68,4 +70,20 @@ public static class Gt06MessageMapper
             Payload = message
         };
     }
+
+    private static DeviceMessage Map(CommandResponseMessage message)
+{
+            return new DeviceMessage
+            {
+                Type = MessageType.CommandResponse,
+
+                Payload = new CommandResult
+                {
+                    ServerFlag = message.ServerFlag,
+                    DeviceId = string.Empty,
+                    Success = message.Success,
+                    Response = message.Text
+                }
+            };
+        }
 }

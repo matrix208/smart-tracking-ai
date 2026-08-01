@@ -2,6 +2,7 @@
 using System.Net.Sockets;
 using Tracking.Plugin.GT06.Protocol.CRC;
 using Tracking.Plugin.GT06.Protocol.Protocols;
+using Tracking.Plugin.GT06.Protocol.Encoders;
 
 Console.WriteLine("GT06 Simulator");
 
@@ -14,7 +15,46 @@ await client.ConnectAsync(
 Console.WriteLine("Connected to server");
 
 var stream = client.GetStream();
+var receiveTask = Task.Run(async () =>
+{
+    var buffer = new byte[1024];
 
+    while (true)
+    {
+        int read = await stream.ReadAsync(buffer);
+
+        if (read == 0)
+            break;
+
+        var packet = buffer[..read];
+
+        Console.WriteLine(
+            $"SERVER -> {Convert.ToHexString(packet)}");
+
+        if (packet.Length < 8)
+            continue;
+
+        // Protocol Number
+        if (packet[3] != 0x80)
+            continue;
+
+       ushort flag =
+    System.Buffers.Binary.BinaryPrimitives
+        .ReadUInt16BigEndian(packet.AsSpan(5, 2));
+        
+        Console.WriteLine(
+            $"Command Flag = {flag}");
+
+        var response =
+            Gt06CommandResponseEncoder
+                .BuildCommandResponse(flag);
+
+        Console.WriteLine(
+            $"SEND RESPONSE -> {Convert.ToHexString(response)}");
+
+        await stream.WriteAsync(response);
+    }
+});
 ushort serial = 1;
 
 

@@ -29,14 +29,14 @@ public sealed class CommandEncoder
 
         // Command Length
         payload.WriteByte(
-            (byte)(4 + commandBytes.Length));
+    (byte)(2 + commandBytes.Length));
 
         // Server Flag
-        Span<byte> flag = stackalloc byte[4];
+            Span<byte> flag = stackalloc byte[2];
 
-        BinaryPrimitives.WriteUInt32BigEndian(
+        BinaryPrimitives.WriteUInt16BigEndian(
             flag,
-            serverFlag);
+            checked((ushort)serverFlag));
 
         payload.Write(flag);
 

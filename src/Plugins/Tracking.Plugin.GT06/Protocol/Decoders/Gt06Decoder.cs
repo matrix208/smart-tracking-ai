@@ -8,7 +8,8 @@ public sealed class Gt06Decoder
     private readonly LoginDecoder _login = new();
     private readonly HeartbeatDecoder _heartbeat = new();
     private readonly GpsDecoder _gps = new();
-
+    private readonly CommandAckDecoder _commandAck = new();
+    private readonly CommandResponseDecoder _commandResponse = new();
     public object Decode(ReadOnlyMemory<byte> packet)
     {
         var reader = new BinaryReader(packet);
@@ -23,13 +24,15 @@ public sealed class Gt06Decoder
         var protocol = (Gt06MessageType)reader.ReadByte();
 
         return protocol switch
-        {
-            Gt06MessageType.Login      => _login.Decode(reader),
-            Gt06MessageType.GPS        => _gps.Decode(reader),
-            Gt06MessageType.Heartbeat  => _heartbeat.Decode(reader),
+{
+    Gt06MessageType.Login      => _login.Decode(reader),
+    Gt06MessageType.GPS        => _gps.Decode(reader),
+    Gt06MessageType.Heartbeat  => _heartbeat.Decode(reader),
 
-            _ => throw new NotSupportedException(
-                $"GT06 protocol {protocol} (0x{(byte)protocol:X2}) is not supported.")
-        };
+        (Gt06MessageType)0x21 => _commandAck.Decode(reader),
+
+    _ => throw new NotSupportedException(
+        $"GT06 protocol {protocol} (0x{(byte)protocol:X2}) is not supported.")
+};
     }
 }

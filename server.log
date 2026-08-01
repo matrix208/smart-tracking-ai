@@ -1,0 +1,27 @@
+Manifest.Id         = 'gt06'
+Manifest.Name       = 'GT06 Protocol'
+Manifest.EntryPoint = 'Tracking.Plugin.GT06.Plugin.Gt06Plugin'
+Manifest.Assembly   = 'Tracking.Plugin.GT06.dll'
+===== Plugin Debug =====
+Folder       : /Users/mac/TrackingPlatform/src/Plugins/Tracking.Plugin.GT06
+Assembly     : Tracking.Plugin.GT06.dll
+AssemblyPath : /Users/mac/TrackingPlatform/src/Plugins/Tracking.Plugin.GT06/bin/Debug/net10.0/Tracking.Plugin.GT06.dll
+Exists       : True
+========================
+Loaded Plugin : GT06 Protocol
+Plugins Loaded
+----------------
+GT06 Protocol
+
+Position Writer Started
+Device Writer Started
+Heartbeat Monitor Started
+Command Worker Started
+Heartbeat Monitor Started
+Command Timeout Worker Started
+Position Writer Worker Started
+Device Writer Worker Started
+Command Worker Started
+TCP Server listening on 0.0.0.0:5001
+Server Started
+> 

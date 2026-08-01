@@ -14,7 +14,9 @@ using Tracking.PluginManager.Services;
 using Tracking.Commands.Channels;
 using Tracking.Commands.Services;
 using Tracking.Commands.Workers;
-
+using Tracking.Commands.Stores;
+using Tracking.SDK.Models;
+using Tracking.Commands.Lifecycle;
 
 var loader = new PluginLoader();
 
@@ -58,14 +60,12 @@ var commandDispatcher =
     new CommandDispatcher(commandService);
     var commandSequence =
     new Tracking.Commands.Sequence.CommandSequence();
+    var pendingStore =
+    new PendingCommandStore();
 
-var commandWorker =
-    new CommandWorker(
-        commandChannel,
-        registry,
-        pluginManager,
-        commandSequence);
-
+    var commandTimeoutWorker =
+    new CommandTimeoutWorker(
+        pendingStore);
 
 var positionChannel = new PositionChannel();
 
@@ -86,8 +86,35 @@ var factory =
     new PooledDbContextFactory<TrackingDbContext>(
         options);
 
+// إنشاء قاعدة البيانات والجداول إذا لم تكن موجودة
+await using (var db = factory.CreateDbContext())
+{
+    await db.Database.EnsureCreatedAsync();
+}
 
+await using var commandDb =
+    factory.CreateDbContext();
 
+var commandLifecycle =
+    new CommandLifecycleService(
+        pendingStore,
+        commandDb);
+
+await using var historyDb =
+    factory.CreateDbContext();
+
+var historyService =
+    new Tracking.Commands.Queries.CommandHistoryService(
+        historyDb);
+
+var commandWorker =
+    new CommandWorker(
+        commandChannel,
+        registry,
+        pluginManager,
+        commandSequence,
+        pendingStore,
+        commandLifecycle);
 // تشغيل حفظ المواقع
 var positionWriter =
     new PositionWriterWorker(
@@ -144,6 +171,9 @@ Console.WriteLine(
 
 _ = commandWorker.StartAsync(
     workerCts.Token);
+    
+_ = commandTimeoutWorker.StartAsync(
+    workerCts.Token);
 
 Console.WriteLine(
     "Command Worker Started");
@@ -175,10 +205,36 @@ server.PacketReceived += async (
 
 
 
-    if (message == null)
-        return;
+if (message == null)
+    return;
 
+// معالجة ردود الأوامر القادمة من أي Plugin
+if (message.Type == MessageType.CommandResponse &&
+    message.Payload is CommandResult result)
+{
+    if (pendingStore.TryGet(
+            result.ServerFlag,
+            out var command))
+    {
+        await commandLifecycle.CompleteAsync(result);
 
+        Console.WriteLine(
+            $"[Command] Reply -> {command!.DeviceId}");
+
+        Console.WriteLine(
+            $"Success : {result.Success}");
+
+        Console.WriteLine(
+            $"Response: {result.Response}");
+    }
+    else
+    {
+        Console.WriteLine(
+            $"[Command] Unknown ServerFlag : {result.ServerFlag}");
+    }
+
+    return;
+}
 
     // إذا وصلت GPS بدون IMEI
     // نأخذ IMEI من Session
@@ -223,7 +279,6 @@ server.PacketReceived += async (
 };
 
 
-
 // عند فصل الجهاز
 server.ClientDisconnected += async session =>
 {
@@ -246,7 +301,6 @@ server.ClientDisconnected += async session =>
         Console.WriteLine(
             $"[Registry] Device Offline : {session.DeviceId}");
     }
-
 
     return;
 
@@ -271,7 +325,8 @@ while (true)
 
     if (parts.Length < 2)
     {
-        Console.WriteLine("Usage: position <imei>");
+        Console.WriteLine(
+    "Usage: position|status|reboot|history <imei>");
         continue;
     }
 
@@ -288,6 +343,50 @@ while (true)
         case "reboot":
             await commandDispatcher.RebootAsync(parts[1]);
             break;
+case "history":
+{
+    var history =
+        await historyService.GetAsync(parts[1], 20);
+
+    if (history.Count == 0)
+    {
+        Console.WriteLine("No commands found.");
+        break;
+    }
+
+    Console.WriteLine();
+
+    Console.WriteLine("=========== COMMAND HISTORY ===========");
+
+    foreach (var cmd in history)
+    {
+        Console.WriteLine(
+            $"{cmd.SentAt:yyyy-MM-dd HH:mm:ss} UTC");
+
+        Console.WriteLine(
+            $"Command   : {cmd.Command}");
+
+        Console.WriteLine(
+            $"Status    : {cmd.Status}");
+
+        Console.WriteLine(
+            $"Flag      : {cmd.ServerFlag}");
+
+        Console.WriteLine(
+            $"Response  : {cmd.Response}");
+
+        Console.WriteLine(
+            $"Protocol  : {cmd.Protocol}");
+
+        Console.WriteLine("---------------------------------------");
+    }
+
+    break;
+}
+
+
+
+
 
         default:
             Console.WriteLine("Unknown command");
@@ -304,7 +403,6 @@ static void PrintRegistry(
     Console.WriteLine(
         "=========== DEVICE REGISTRY ===========");
 
-
     var devices =
         registry.Devices.ToList();
 
@@ -315,8 +413,6 @@ static void PrintRegistry(
 
 
     Console.WriteLine();
-
-
 
     foreach (var device in devices.OrderBy(d => d.Imei))
     {
@@ -356,12 +452,9 @@ static void PrintRegistry(
         }
 
 
-
         Console.WriteLine(
             "---------------------------------------");
     }
-
-
 
     Console.WriteLine(
         "=======================================");

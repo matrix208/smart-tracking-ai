@@ -10,6 +10,8 @@
     <ProjectReference Include="..\Tracking.Core\Tracking.Core.csproj" />
     <ProjectReference Include="..\Tracking.SDK\Tracking.SDK.csproj" />
     <ProjectReference Include="..\Tracking.PluginManager\Tracking.PluginManager.csproj" />
+
+    <ProjectReference Include="..\..\Infrastructure\Tracking.Storage\Tracking.Storage.csproj" />
   </ItemGroup>
 
 </Project>
