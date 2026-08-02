@@ -24,6 +24,9 @@ public sealed class CommandLifecycleService
         CommandCommand command,
         string? protocol = null)
     {
+        Console.WriteLine(
+            $"[DB] Register Command -> {command.DeviceId} Flag={command.ServerFlag}");
+
         _pendingStore.Register(command);
 
         var entity = new CommandEntity
@@ -39,6 +42,9 @@ public sealed class CommandLifecycleService
         _db.Commands.Add(entity);
 
         await _db.SaveChangesAsync();
+
+        Console.WriteLine(
+            $"[DB] Command Saved -> {entity.Id}");
     }
 
     public async Task CompleteAsync(

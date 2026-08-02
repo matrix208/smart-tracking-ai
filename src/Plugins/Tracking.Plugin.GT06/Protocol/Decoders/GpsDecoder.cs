@@ -41,13 +41,23 @@ public sealed class GpsDecoder
         // Course + status (2 bytes)
         var courseStatus = reader.ReadUInt16BE();
 
-        var gpsFix = (courseStatus & 0x1000) != 0;
+       // Status bits
+            var gpsFix = (courseStatus & 0x0400) != 0;
+            var isWest = (courseStatus & 0x0800) != 0;
+            var isSouth = (courseStatus & 0x1000) != 0;
 
-        var course = courseStatus & 0x03FF;
+            var course = courseStatus & 0x03FF;
 
-        // GT06 coordinates conversion
-        var latitude = latitudeRaw / 1800000.0;
-        var longitude = longitudeRaw / 1800000.0;
+            // GT06 coordinates conversion
+            var latitude = latitudeRaw / 1800000.0;
+            var longitude = longitudeRaw / 1800000.0;
+
+            // Apply hemisphere
+            if (isSouth)
+                latitude = -latitude;
+
+            if (isWest)
+                longitude = -longitude;
 
         return new GpsMessage
         {

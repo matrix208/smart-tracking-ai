@@ -18,6 +18,7 @@ using Tracking.Commands.Stores;
 using Tracking.SDK.Models;
 using Tracking.Commands.Lifecycle;
 
+
 var loader = new PluginLoader();
 
 var pluginManager = new ProtocolPluginManager();
@@ -44,10 +45,8 @@ foreach (var plugin in plugins)
 Console.WriteLine();
 
 
-
 var pipeline = new PacketPipeline(
     plugins);
-
 
 
 var registry = new DeviceRegistry();
@@ -79,8 +78,6 @@ var options =
         .UseSqlite(
             "Data Source=tracking.db")
         .Options;
-
-
 
 var factory =
     new PooledDbContextFactory<TrackingDbContext>(
@@ -121,21 +118,15 @@ var positionWriter =
         positionChannel,
         factory);
 
-
-
 var workerCts =
     new CancellationTokenSource();
-
 
 
 _ = positionWriter.StartAsync(
     workerCts.Token);
 
-
 Console.WriteLine(
     "Position Writer Started");
-
-
 
 // تشغيل حفظ الأجهزة
 var deviceWriter =
@@ -143,24 +134,17 @@ var deviceWriter =
         deviceChannel,
         factory);
 
-
-
 _ = deviceWriter.StartAsync(
     workerCts.Token);
 
-
 Console.WriteLine(
     "Device Writer Started");
-
-
 
 // مراقبة Heartbeat
 var heartbeatWorker =
     new HeartbeatMonitorWorker(
         registry,
         deviceChannel);
-
-
 
 _ = heartbeatWorker.StartAsync(
     workerCts.Token);
@@ -185,13 +169,10 @@ var deviceManager =
         positionChannel,
         deviceChannel);
 
-
-
 // TCP Server
 var server =
     new TcpTrackingServer(
         5001);
-
 
 
 server.PacketReceived += async (
@@ -202,8 +183,6 @@ server.PacketReceived += async (
         await pipeline.ProcessAsync(
             packet,
             session);
-
-
 
 if (message == null)
     return;
@@ -250,8 +229,6 @@ if (message.Type == MessageType.CommandResponse &&
             };
     }
 
-
-
     // حفظ IMEI بعد Login
     if (message.Type == MessageType.Login &&
         session is ClientSession loginSession &&
@@ -261,23 +238,16 @@ if (message.Type == MessageType.CommandResponse &&
             message.DeviceId;
     }
 
-
-
     await deviceManager.ProcessAsync(
         session,
         message);
 
-
-
     Console.WriteLine(
         $"Decoded: {message.Type}");
-
-
 
     PrintRegistry(
         registry);
 };
-
 
 // عند فصل الجهاز
 server.ClientDisconnected += async session =>
@@ -286,7 +256,6 @@ server.ClientDisconnected += async session =>
     {
         registry.Disconnect(
             session.DeviceId);
-
 
         await deviceChannel.WriteAsync(
             new Tracking.Storage.Entities.DeviceEntity
@@ -344,6 +313,7 @@ while (true)
             await commandDispatcher.RebootAsync(parts[1]);
             break;
 case "history":
+
 {
     var history =
         await historyService.GetAsync(parts[1], 20);
@@ -384,16 +354,11 @@ case "history":
     break;
 }
 
-
-
-
-
         default:
             Console.WriteLine("Unknown command");
             break;
     }
 }
-
 
 static void PrintRegistry(
     DeviceRegistry registry)
@@ -419,33 +384,25 @@ static void PrintRegistry(
         Console.WriteLine(
             $"IMEI       : {device.Imei}");
 
-
         Console.WriteLine(
             $"Online     : {device.Online}");
-
 
         Console.WriteLine(
             $"Connection : {device.ConnectionId}");
 
-
         Console.WriteLine(
             $"Packets    : {device.PacketCount}");
 
-
         Console.WriteLine(
             $"Last Seen  : {device.LastSeen:yyyy-MM-dd HH:mm:ss} UTC");
-
-
 
         if (device.LastPosition != null)
         {
             Console.WriteLine(
                 $"Latitude   : {device.LastPosition.Latitude:F6}");
 
-
             Console.WriteLine(
                 $"Longitude  : {device.LastPosition.Longitude:F6}");
-
 
             Console.WriteLine(
                 $"Speed      : {device.LastPosition.Speed:F0} km/h");

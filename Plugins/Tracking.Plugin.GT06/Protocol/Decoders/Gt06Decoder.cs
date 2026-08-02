@@ -22,14 +22,20 @@ public sealed class Gt06Decoder
         // Protocol number
         var protocol = (Gt06MessageType)reader.ReadByte();
 
-        return protocol switch
-        {
-            Gt06MessageType.Login      => _login.Decode(reader),
-            Gt06MessageType.GPS        => _gps.Decode(reader),
-            Gt06MessageType.Heartbeat  => _heartbeat.Decode(reader),
+return protocol switch
+{
+    Gt06MessageType.Login => _login.Decode(reader),
 
-            _ => throw new NotSupportedException(
-                $"GT06 protocol {protocol} (0x{(byte)protocol:X2}) is not supported.")
-        };
+    Gt06MessageType.GPS => _gps.Decode(reader),
+
+    Gt06MessageType.Heartbeat => _heartbeat.Decode(reader),
+
+    Gt06MessageType.Status => _heartbeat.Decode(reader),
+
+    (Gt06MessageType)0x21 => _commandAck.Decode(reader),
+
+    _ => throw new NotSupportedException(
+        $"GT06 protocol {protocol} (0x{(byte)protocol:X2}) is not supported.")
+};
     }
 }

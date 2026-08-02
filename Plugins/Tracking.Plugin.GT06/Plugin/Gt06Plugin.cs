@@ -79,6 +79,19 @@ public sealed class Gt06Plugin : IProtocolPlugin
                 $"GT06 -> {deviceMessage.Type}");
         }
 
+                if (deviceMessage != null)
+                {
+                    Console.WriteLine("================================");
+                    Console.WriteLine($"Session.DeviceId = {session.DeviceId}");
+                    Console.WriteLine($"Message.DeviceId = {deviceMessage.DeviceId}");
+
+                    if (decoded is LoginMessage l)
+                    {
+                        Console.WriteLine($"Login.Imei       = {l.Imei}");
+                    }
+
+                    Console.WriteLine("================================");
+                }
         return deviceMessage;
     }
 
