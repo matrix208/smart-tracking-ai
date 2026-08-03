@@ -19,7 +19,8 @@ public sealed class TrackingDbContext : DbContext
 
     public DbSet<CommandEntity> Commands =>
         Set<CommandEntity>();
-
+    public DbSet<AlarmEntity> Alarms =>
+        Set<AlarmEntity>();
     protected override void OnModelCreating(
         ModelBuilder modelBuilder)
     {
@@ -49,5 +50,10 @@ public sealed class TrackingDbContext : DbContext
         modelBuilder.Entity<CommandEntity>()
             .Property(x => x.Protocol)
             .HasMaxLength(50);
+        modelBuilder.Entity<AlarmEntity>()
+        .HasOne(x => x.Device)
+        .WithMany()
+        .HasForeignKey(x => x.DeviceId);
+
     }
 }

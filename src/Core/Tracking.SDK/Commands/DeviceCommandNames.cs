@@ -35,7 +35,24 @@ public static class DeviceCommandNames
     public const string Sleep = "sleep";
     public const string Heartbeat = "heartbeat";
 
-    public const string Imei = "imei";
-    public const string Version = "version";
-    public const string Signal = "signal";
+         public const string Imei = "imei";
+         public const string Version = "version";
+         public const string Signal = "signal";
+        public const string Acc = "acc";
+        public const string Vibration = "vibration";
+        public const string GeoFence = "geofence";
+        public const string Overspeed = "overspeed";
+
+        public const string Listen = "listen";
+        public const string Center = "center";
+        public const string Admin = "admin";
+
+        public const string Language = "language";
+        public const string Led = "led";
+        public const string Buzzer = "buzzer";
+
+        public const string Iccid = "iccid";
+        public const string Parameter = "parameter";
+        public const string Timer = "timer";
+
 }

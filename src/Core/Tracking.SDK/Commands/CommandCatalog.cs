@@ -42,5 +42,23 @@ public static class CommandCatalog
         new(DeviceCommandNames.Imei,       "Read IMEI"),
         new(DeviceCommandNames.Version,    "Read firmware version"),
         new(DeviceCommandNames.Signal,     "Read GSM signal"),
+        
+            new(DeviceCommandNames.Acc,        "ACC alarm"),
+            new(DeviceCommandNames.Vibration,  "Vibration alarm"),
+            new(DeviceCommandNames.GeoFence,   "Geo fence"),
+            new(DeviceCommandNames.Overspeed,  "Overspeed alarm"),
+
+            new(DeviceCommandNames.Listen,     "Voice monitor"),
+            new(DeviceCommandNames.Center,     "Center number"),
+            new(DeviceCommandNames.Admin,      "Administrator number"),
+
+            new(DeviceCommandNames.Language,   "Device language"),
+            new(DeviceCommandNames.Led,        "LED control"),
+            new(DeviceCommandNames.Buzzer,     "Buzzer control"),
+
+            new(DeviceCommandNames.Iccid,      "Read ICCID"),
+            new(DeviceCommandNames.Parameter,  "Read parameters"),
+            new(DeviceCommandNames.Timer,      "Timer configuration"),
+
     ];
 }

@@ -7,58 +7,43 @@ public sealed class GpsDecoder
 {
     public object Decode(BinaryReader reader)
     {
-        // GT06 GPS Packet 0x12
+       var timestamp = reader.ReadDateTimeBcd();
 
-        // Date time: YY MM DD HH MM SS
-        var year = 2000 + reader.ReadByte();
-        var month = reader.ReadByte();
-        var day = reader.ReadByte();
-        var hour = reader.ReadByte();
-        var minute = reader.ReadByte();
-        var second = reader.ReadByte();
 
-        var timestamp = new DateTime(
-            year,
-            month,
-            day,
-            hour,
-            minute,
-            second,
-            DateTimeKind.Utc);
-
-        // GPS information byte
+        // GPS info
         var gpsInfo = reader.ReadByte();
 
-        // Latitude (4 bytes)
+        // Latitude
         var latitudeRaw = reader.ReadUInt32BE();
 
-        // Longitude (4 bytes)
+        // Longitude
         var longitudeRaw = reader.ReadUInt32BE();
 
-        // Speed (1 byte)
+        // Speed km/h
         var speed = reader.ReadByte();
 
-        // Course + status (2 bytes)
-        var courseStatus = reader.ReadUInt16BE();
+        // Course + Status
+        var status = reader.ReadCourseStatus();
 
-       // Status bits
-            var gpsFix = (courseStatus & 0x0400) != 0;
-            var isWest = (courseStatus & 0x0800) != 0;
-            var isSouth = (courseStatus & 0x1000) != 0;
+            var gpsFix = status.GpsFix;
+            var isWest = status.West;
+            var isSouth = status.South;
 
-            var course = courseStatus & 0x03FF;
+            var course = status.Course;
 
-            // GT06 coordinates conversion
-            var latitude = latitudeRaw / 1800000.0;
-            var longitude = longitudeRaw / 1800000.0;
 
-            // Apply hemisphere
-            if (isSouth)
-                latitude = -latitude;
+        var latitude = latitudeRaw / 1800000.0;
+        var longitude = longitudeRaw / 1800000.0;
 
-            if (isWest)
-                longitude = -longitude;
 
+        if (isSouth)
+            latitude = -latitude;
+
+        if (isWest)
+            longitude = -longitude;
+
+            Console.WriteLine(
+                $"GPS: Lat={latitude}, Lon={longitude}, Speed={speed}, Course={course}, Fix={gpsFix}");
         return new GpsMessage
         {
             Latitude = latitude,

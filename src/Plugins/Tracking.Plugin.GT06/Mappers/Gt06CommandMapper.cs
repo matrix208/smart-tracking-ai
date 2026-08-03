@@ -7,10 +7,11 @@ internal static class Gt06CommandMapper
 {
     public static string Map(DeviceCommand command)
     {
-        return command.Name.ToLowerInvariant() switch
-        {
-            DeviceCommandNames.Position   => "DWXX#",
-            DeviceCommandNames.Status     => "STATUS#",
+       return command.Name.ToLowerInvariant() switch
+{
+    DeviceCommandNames.Position   => "DWXX#",
+    "requestposition"             => "DWXX#",
+    DeviceCommandNames.Status     => "STATUS#",
             DeviceCommandNames.Check      => "CHECK#",
             DeviceCommandNames.Version    => "VERSION#",
             DeviceCommandNames.Imei       => "IMEI#",
@@ -28,6 +29,23 @@ internal static class Gt06CommandMapper
             DeviceCommandNames.Monitor    => "MONITOR#",
             DeviceCommandNames.Tracker    => "TRACKER#",
 
+            DeviceCommandNames.Acc         => "ACC#",
+            DeviceCommandNames.Vibration   => "VIBRATION#",
+            DeviceCommandNames.GeoFence    => "FENCE#",
+            DeviceCommandNames.Overspeed   => "OVERSPEED#",
+
+            DeviceCommandNames.Listen      => "LISTEN#",
+            DeviceCommandNames.Center      => "CENTER#",
+            DeviceCommandNames.Admin       => "ADMIN#",
+
+            DeviceCommandNames.Language    => "LANGUAGE#",
+            DeviceCommandNames.Led         => "LED#",
+            DeviceCommandNames.Buzzer      => "BUZZER#",
+
+            DeviceCommandNames.Iccid       => "ICCID#",
+            DeviceCommandNames.Parameter   => "PARAM#",
+            DeviceCommandNames.Timer       => "TIMER#",
+
             DeviceCommandNames.Upload     => BuildUpload(command),
             DeviceCommandNames.Apn        => BuildApn(command),
             DeviceCommandNames.Server     => BuildServer(command),
@@ -42,6 +60,7 @@ internal static class Gt06CommandMapper
             DeviceCommandNames.Heartbeat  => BuildHeartbeat(command),
 
             DeviceCommandNames.Signal     => "CSQ#",
+            
 
             _ => throw new NotSupportedException(
                 $"GT06 command '{command.Name}' is not supported.")

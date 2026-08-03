@@ -323,20 +323,22 @@ public double ReadCoordinate()
 
     return raw / 1800000.0;
 }
-
-public (ushort Course, bool RealTime, bool West, bool South)
+public (ushort Course, bool GpsFix, bool West, bool South)
     ReadCourseStatus()
 {
     ushort value = ReadUInt16BigEndian();
 
     ushort course = (ushort)(value & 0x03FF);
 
-    bool realTime = (value & 0x2000) != 0;
+    // GT06 bit 10: GPS valid status
+    bool gpsFix = (value & 0x0400) == 0;
 
+    // bit 11: longitude direction
     bool west = (value & 0x0800) != 0;
 
-    bool south = (value & 0x0400) != 0;
+    // bit 12: latitude direction
+    bool south = (value & 0x1000) != 0;
 
-    return (course, realTime, west, south);
+    return (course, gpsFix, west, south);
 }
 }
