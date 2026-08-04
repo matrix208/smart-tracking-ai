@@ -4,7 +4,7 @@ public sealed class PositionEntity
 {
     public long Id { get; set; }
 
-    public long DeviceId { get; set; }
+   public string DeviceId { get; set; } = string.Empty;
 
     public DeviceEntity? Device { get; set; }
 

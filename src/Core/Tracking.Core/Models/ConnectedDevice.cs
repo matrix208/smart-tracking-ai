@@ -27,7 +27,7 @@ public sealed class ConnectedDevice
     /// <summary>
     /// حالة الاتصال
     /// </summary>
-    public bool Online { get; set; }
+    public bool IsOnline { get; set; }
 
 
     /// <summary>

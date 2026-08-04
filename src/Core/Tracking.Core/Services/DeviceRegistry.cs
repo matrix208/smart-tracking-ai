@@ -29,7 +29,7 @@ public sealed class DeviceRegistry
             {
                 Imei = imei,
                 Session = session,
-                Online = true,
+                IsOnline = true,
                 ConnectedAt = DateTime.UtcNow,
                 LastSeen = DateTime.UtcNow
             },
@@ -39,7 +39,7 @@ public sealed class DeviceRegistry
             (_, existing) =>
             {
                 existing.Session = session;
-                existing.Online = true;
+                existing.IsOnline = true;
                 existing.LastSeen = DateTime.UtcNow;
 
                 return existing;
@@ -102,7 +102,7 @@ public sealed class DeviceRegistry
             return false;
 
 
-        if (!device.Online)
+        if (!device.IsOnline)
             return false;
 
 
@@ -128,7 +128,7 @@ public sealed class DeviceRegistry
             imei,
             out var device))
         {
-            device.Online = false;
+            device.IsOnline = false;
             device.LastSeen = DateTime.UtcNow;
             device.Session = null;
         }
@@ -161,7 +161,7 @@ public sealed class DeviceRegistry
 
 
             existing.Session = newSession;
-            existing.Online = true;
+            existing.IsOnline = true;
             existing.LastSeen = DateTime.UtcNow;
 
             return;
@@ -175,7 +175,7 @@ public sealed class DeviceRegistry
             {
                 Imei = imei,
                 Session = newSession,
-                Online = true,
+                IsOnline = true,
                 ConnectedAt = DateTime.UtcNow,
                 LastSeen = DateTime.UtcNow
             });

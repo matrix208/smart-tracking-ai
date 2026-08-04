@@ -8,9 +8,22 @@ public sealed class DeviceEntity
 
     public string Protocol { get; set; } = "GT06";
 
+    // آخر اتصال من الجهاز (Heartbeat أو GPS أو Login)
     public DateTime LastSeen { get; set; }
 
-    public bool Online { get; set; }
+    public bool IsOnline { get; set; }
+
+    // آخر موقع معروف
+    public double? LastLatitude { get; set; }
+
+    public double? LastLongitude { get; set; }
+
+    public double? LastSpeed { get; set; }
+
+    public double? LastCourse { get; set; }
+
+    // وقت آخر إحداثية أرسلها الجهاز
+    public DateTime? LastPositionTime { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

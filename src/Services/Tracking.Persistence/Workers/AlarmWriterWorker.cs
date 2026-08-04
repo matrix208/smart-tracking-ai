@@ -20,8 +20,6 @@ public sealed class AlarmWriterWorker : BackgroundService
         _factory = factory;
     }
 
-
-
     protected override async Task ExecuteAsync(
         CancellationToken stoppingToken)
     {
@@ -29,63 +27,47 @@ public sealed class AlarmWriterWorker : BackgroundService
             "Alarm Writer Worker Started");
 
 
-
-        var batch =
-            new List<AlarmEntity>();
-
-
-
         await foreach (var alarm in
             _channel.ReadAllAsync(stoppingToken))
         {
-            batch.Add(alarm);
-
-
-
-            if (batch.Count >= 500)
-            {
-                await SaveBatchAsync(
-                    batch,
+            Console.WriteLine(
+    $"[Worker] Alarm Received : {alarm.DeviceId} Code={alarm.AlarmCode}");
+            await using var db =
+                await _factory.CreateDbContextAsync(
                     stoppingToken);
 
-                batch.Clear();
+
+            var device =
+                await db.Devices
+                    .FirstOrDefaultAsync(
+                        x => x.Imei == alarm.DeviceId,
+                        stoppingToken);
+
+
+            if (device == null)
+            {
+                Console.WriteLine(
+                    $"[Alarm] Device not found : {alarm.DeviceId}");
+
+                continue;
             }
-        }
 
+            await db.Alarms.AddAsync(
+                new AlarmEntity
+                {
+                   DeviceId = device.Imei,
 
+                    AlarmCode = alarm.AlarmCode,
 
-        if (batch.Count > 0)
-        {
-            await SaveBatchAsync(
-                batch,
+                    DeviceTime = alarm.DeviceTime,
+
+                    ServerTime = alarm.ServerTime
+                },
                 stoppingToken);
+            await db.SaveChangesAsync(
+                stoppingToken);
+            Console.WriteLine(
+                $"[DB] Alarm Saved : {alarm.DeviceId}");
         }
-    }
-
-
-
-    private async Task SaveBatchAsync(
-        List<AlarmEntity> batch,
-        CancellationToken cancellationToken)
-    {
-        await using var db =
-            await _factory.CreateDbContextAsync(
-                cancellationToken);
-
-
-
-        await db.Alarms.AddRangeAsync(
-            batch,
-            cancellationToken);
-
-
-
-        await db.SaveChangesAsync(
-            cancellationToken);
-
-
-
-        Console.WriteLine(
-            $"Saved {batch.Count} alarms");
     }
 }

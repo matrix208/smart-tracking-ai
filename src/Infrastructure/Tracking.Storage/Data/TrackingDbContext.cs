@@ -19,8 +19,10 @@ public sealed class TrackingDbContext : DbContext
 
     public DbSet<CommandEntity> Commands =>
         Set<CommandEntity>();
+
     public DbSet<AlarmEntity> Alarms =>
         Set<AlarmEntity>();
+
     protected override void OnModelCreating(
         ModelBuilder modelBuilder)
     {
@@ -28,10 +30,23 @@ public sealed class TrackingDbContext : DbContext
             .HasIndex(x => x.Imei)
             .IsUnique();
 
+        modelBuilder.Entity<DeviceEntity>()
+            .HasAlternateKey(x => x.Imei);
+
+
         modelBuilder.Entity<PositionEntity>()
             .HasOne(x => x.Device)
             .WithMany(x => x.Positions)
-            .HasForeignKey(x => x.DeviceId);
+            .HasForeignKey(x => x.DeviceId)
+            .HasPrincipalKey(x => x.Imei);
+
+
+        modelBuilder.Entity<AlarmEntity>()
+            .HasOne(x => x.Device)
+            .WithMany()
+            .HasForeignKey(x => x.DeviceId)
+            .HasPrincipalKey(x => x.Imei);
+
 
         modelBuilder.Entity<CommandEntity>()
             .HasIndex(x => x.DeviceId);
@@ -50,10 +65,5 @@ public sealed class TrackingDbContext : DbContext
         modelBuilder.Entity<CommandEntity>()
             .Property(x => x.Protocol)
             .HasMaxLength(50);
-        modelBuilder.Entity<AlarmEntity>()
-        .HasOne(x => x.Device)
-        .WithMany()
-        .HasForeignKey(x => x.DeviceId);
-
     }
 }

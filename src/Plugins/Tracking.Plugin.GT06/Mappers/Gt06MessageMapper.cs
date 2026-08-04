@@ -29,30 +29,33 @@ public static class Gt06MessageMapper
             Payload = message
         };
     }
-
-    private static DeviceMessage Map(GpsMessage message)
+private static DeviceMessage Map(GpsMessage message)
+{
+    return new DeviceMessage
     {
-        return new DeviceMessage
+        Type = MessageType.Position,
+
+        DeviceId = message.DeviceId,
+
+        Position = new Position
         {
-            Type = MessageType.Position,
+            DeviceId = message.DeviceId,
 
-            Position = new Position
-            {
-                Latitude = message.Latitude,
-                Longitude = message.Longitude,
-                Speed = message.Speed,
-                Course = message.Course,
+            Latitude = message.Latitude,
+            Longitude = message.Longitude,
 
-                DeviceTime = message.Timestamp,
-                ServerTime = DateTime.UtcNow,
+            Speed = message.Speed,
+            Course = message.Course,
 
-                Valid = message.GpsFix
-            },
+            DeviceTime = message.Timestamp,
+            ServerTime = DateTime.UtcNow,
 
-            Payload = message
-        };
-    }
+            Valid = message.GpsFix
+        },
 
+        Payload = message
+    };
+}
     private static DeviceMessage Map(HeartbeatMessage message)
     {
         return new DeviceMessage
@@ -61,16 +64,25 @@ public static class Gt06MessageMapper
             Payload = message
         };
     }
-
-    private static DeviceMessage Map(AlarmMessage message)
+private static DeviceMessage Map(AlarmMessage message)
+{
+    return new DeviceMessage
     {
-        return new DeviceMessage
-        {
-            Type = MessageType.Alarm,
-            Payload = message
-        };
-    }
+        Type = MessageType.Alarm,
 
+        DeviceId = message.DeviceId,
+
+        Alarm = new Tracking.SDK.Models.Alarm
+        {
+            DeviceId = message.DeviceId ?? string.Empty,
+            AlarmCode = message.AlarmCode,
+            DeviceTime = message.Timestamp,
+            ServerTime = DateTime.UtcNow
+        },
+
+        Payload = message
+    };
+}
     private static DeviceMessage Map(CommandResponseMessage message)
 {
             return new DeviceMessage

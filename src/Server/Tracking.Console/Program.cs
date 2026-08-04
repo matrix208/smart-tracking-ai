@@ -41,9 +41,7 @@ foreach (var plugin in plugins)
         plugin.Manifest.Name);
 }
 
-
 Console.WriteLine();
-
 
 var pipeline = new PacketPipeline(
     plugins);
@@ -67,16 +65,20 @@ var commandDispatcher =
         pendingStore);
 
 var positionChannel = new PositionChannel();
-
 var deviceChannel = new DeviceChannel();
-
+var alarmChannel = new AlarmChannel();
 
 
 // Database
+var dbPath = Path.GetFullPath("tracking.db");
+
+Console.WriteLine(
+    $"SQLite Database Path: {dbPath}");
+
 var options =
     new DbContextOptionsBuilder<TrackingDbContext>()
-        .UseSqlite(
-            "Data Source=tracking.db")
+     .UseSqlite(
+    "Data Source=/Users/mac/TrackingPlatform/tracking.db")
         .Options;
 
 var factory =
@@ -139,6 +141,17 @@ _ = deviceWriter.StartAsync(
 
 Console.WriteLine(
     "Device Writer Started");
+// تشغيل حفظ الإنذارات
+var alarmWriter =
+    new AlarmWriterWorker(
+        alarmChannel,
+        factory);
+
+_ = alarmWriter.StartAsync(
+    workerCts.Token);
+
+Console.WriteLine(
+    "Alarm Writer Started");
 
 // مراقبة Heartbeat
 var heartbeatWorker =
@@ -148,7 +161,6 @@ var heartbeatWorker =
 
 _ = heartbeatWorker.StartAsync(
     workerCts.Token);
-
 
 Console.WriteLine(
     "Heartbeat Monitor Started");
@@ -163,17 +175,17 @@ Console.WriteLine(
     "Command Worker Started");
 
 // Device Manager
-var deviceManager =
+    var deviceManager =
     new DeviceManager(
         registry,
         positionChannel,
-        deviceChannel);
+        deviceChannel,
+        alarmChannel);
 
 // TCP Server
 var server =
     new TcpTrackingServer(
         5001);
-
 
 server.PacketReceived += async (
     session,
@@ -217,17 +229,26 @@ if (message.Type == MessageType.CommandResponse &&
 
     // إذا وصلت GPS بدون IMEI
     // نأخذ IMEI من Session
-    if (message.Type == MessageType.Position &&
-        string.IsNullOrWhiteSpace(message.DeviceId) &&
-        session is ClientSession clientSession &&
-        !string.IsNullOrWhiteSpace(clientSession.DeviceId))
-    {
-        message =
-            message with
-            {
-                DeviceId = clientSession.DeviceId
-            };
-    }
+if (string.IsNullOrWhiteSpace(message.DeviceId) &&
+    session is ClientSession clientSession &&
+    !string.IsNullOrWhiteSpace(clientSession.DeviceId))
+{
+    message =
+        message with
+        {
+            DeviceId = clientSession.DeviceId,
+
+            Alarm = message.Alarm == null
+                ? null
+                : new Tracking.SDK.Models.Alarm
+                {
+                    DeviceId = clientSession.DeviceId,
+                    AlarmCode = message.Alarm.AlarmCode,
+                    DeviceTime = message.Alarm.DeviceTime,
+                    ServerTime = message.Alarm.ServerTime
+                }
+        };
+}
 
     // حفظ IMEI بعد Login
     if (message.Type == MessageType.Login &&
@@ -257,15 +278,14 @@ server.ClientDisconnected += async session =>
         registry.Disconnect(
             session.DeviceId);
 
-        await deviceChannel.WriteAsync(
-            new Tracking.Storage.Entities.DeviceEntity
-            {
-                Imei = session.DeviceId,
-                Protocol = "GT06",
-                Online = false,
-                LastSeen = DateTime.UtcNow
-            });
-
+    await deviceChannel.WriteAsync(
+    new Tracking.SDK.Models.DeviceInfo
+    {
+        Imei = session.DeviceId,
+        Protocol = "GT06",
+        IsOnline = false,
+        LastSeen = DateTime.UtcNow
+    });
 
         Console.WriteLine(
             $"[Registry] Device Offline : {session.DeviceId}");
@@ -374,7 +394,7 @@ static void PrintRegistry(
 
 
     Console.WriteLine(
-        $"Online Devices : {devices.Count(d => d.Online)}");
+        $"Online Devices : {devices.Count(d => d.IsOnline)}");
 
 
     Console.WriteLine();
@@ -385,7 +405,7 @@ static void PrintRegistry(
             $"IMEI       : {device.Imei}");
 
         Console.WriteLine(
-            $"Online     : {device.Online}");
+            $"Online     : {device.IsOnline}");
 
         Console.WriteLine(
             $"Connection : {device.ConnectionId}");

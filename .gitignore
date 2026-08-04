@@ -1,4 +1,9 @@
-# Build
+# SQLite temporary files
+*.db-shm
+*.db-wal
+
+# SQLite databases (اختياري)
+# *.db# Build
 bin/
 obj/
 

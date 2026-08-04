@@ -1,17 +1,17 @@
 using System.Threading.Channels;
-using Tracking.Storage.Entities;
+using Tracking.SDK.Models;
 
 namespace Tracking.Persistence.Channels;
 
 public sealed class DeviceChannel
 {
-    private readonly Channel<DeviceEntity> _channel;
+    private readonly Channel<DeviceInfo> _channel;
 
 
     public DeviceChannel()
     {
         _channel =
-            Channel.CreateBounded<DeviceEntity>(
+            Channel.CreateBounded<DeviceInfo>(
                 new BoundedChannelOptions(10000)
                 {
                     FullMode =
@@ -24,10 +24,8 @@ public sealed class DeviceChannel
     }
 
 
-
-    // إضافة جهاز للطابور
     public async ValueTask WriteAsync(
-        DeviceEntity device,
+        DeviceInfo device,
         CancellationToken cancellationToken = default)
     {
         await _channel.Writer.WriteAsync(
@@ -36,9 +34,7 @@ public sealed class DeviceChannel
     }
 
 
-
-    // قراءة الأجهزة عند وصولها
-    public IAsyncEnumerable<DeviceEntity> ReadAllAsync(
+    public IAsyncEnumerable<DeviceInfo> ReadAllAsync(
         CancellationToken cancellationToken = default)
     {
         return _channel.Reader.ReadAllAsync(
@@ -46,8 +42,6 @@ public sealed class DeviceChannel
     }
 
 
-
-    // إغلاق القناة مستقبلاً
     public void Complete()
     {
         _channel.Writer.TryComplete();

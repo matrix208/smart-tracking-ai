@@ -1,17 +1,17 @@
 using System.Threading.Channels;
-using Tracking.Storage.Entities;
+using Tracking.SDK.Models;
 
 namespace Tracking.Persistence.Channels;
 
 public sealed class AlarmChannel
 {
-    private readonly Channel<AlarmEntity> _channel;
+    private readonly Channel<Alarm> _channel;
 
 
     public AlarmChannel()
     {
         _channel =
-            Channel.CreateBounded<AlarmEntity>(
+            Channel.CreateBounded<Alarm>(
                 new BoundedChannelOptions(50000)
                 {
                     FullMode =
@@ -24,10 +24,8 @@ public sealed class AlarmChannel
     }
 
 
-
-    // إضافة إنذار للطابور
     public async ValueTask WriteAsync(
-        AlarmEntity alarm,
+        Alarm alarm,
         CancellationToken cancellationToken = default)
     {
         await _channel.Writer.WriteAsync(
@@ -36,9 +34,7 @@ public sealed class AlarmChannel
     }
 
 
-
-    // قراءة الإنذارات عند وصولها
-    public IAsyncEnumerable<AlarmEntity> ReadAllAsync(
+    public IAsyncEnumerable<Alarm> ReadAllAsync(
         CancellationToken cancellationToken = default)
     {
         return _channel.Reader.ReadAllAsync(
@@ -46,8 +42,6 @@ public sealed class AlarmChannel
     }
 
 
-
-    // إغلاق القناة
     public void Complete()
     {
         _channel.Writer.TryComplete();

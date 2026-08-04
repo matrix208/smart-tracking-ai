@@ -1,12 +1,8 @@
-namespace Tracking.Storage.Entities;
+namespace Tracking.SDK.Models;
 
-public sealed class AlarmEntity
+public sealed class Alarm
 {
-    public long Id { get; set; }
-
     public string DeviceId { get; set; } = string.Empty;
-
-    public DeviceEntity? Device { get; set; }
 
     public byte AlarmCode { get; set; }
 

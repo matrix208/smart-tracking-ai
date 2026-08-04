@@ -9,9 +9,12 @@ public sealed record DeviceMessage
     // رقم الجهاز (IMEI أو أي معرف آخر)
     public string? DeviceId { get; init; }
 
-    // بيانات الموقع إن كانت الرسالة Position
+    // بيانات الموقع
     public Position? Position { get; init; }
 
-    // أي بيانات إضافية (Login, Alarm, Status...)
+    // بيانات الإنذار
+    public Alarm? Alarm { get; init; }
+
+    // أي بيانات إضافية (Login, Heartbeat, Command...)
     public object? Payload { get; init; }
 }

@@ -1,20 +1,20 @@
 using Microsoft.Extensions.Hosting;
 using Tracking.Core.Services;
 using Tracking.Persistence.Channels;
-using Tracking.Storage.Entities;
+using Tracking.SDK.Models;
 
 namespace Tracking.Core.Workers;
 
 public sealed class HeartbeatMonitorWorker : BackgroundService
 {
-    private readonly DeviceRegistry _registry;
-    private readonly DeviceChannel _deviceChannel;
+    private static readonly TimeSpan CheckInterval =
+        TimeSpan.FromSeconds(30);
 
-
-    private readonly TimeSpan _timeout =
+    private static readonly TimeSpan OfflineTimeout =
         TimeSpan.FromMinutes(2);
 
-
+    private readonly DeviceRegistry _registry;
+    private readonly DeviceChannel _deviceChannel;
 
     public HeartbeatMonitorWorker(
         DeviceRegistry registry,
@@ -24,57 +24,52 @@ public sealed class HeartbeatMonitorWorker : BackgroundService
         _deviceChannel = deviceChannel;
     }
 
-
-
     protected override async Task ExecuteAsync(
         CancellationToken stoppingToken)
     {
-        Console.WriteLine(
-            "Heartbeat Monitor Started");
-
+        Console.WriteLine("Heartbeat Monitor Started");
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            var now =
-                DateTime.UtcNow;
-
-
+            var now = DateTime.UtcNow;
 
             foreach (var device in _registry.Devices)
             {
-                if (!device.Online)
+                if (!device.IsOnline)
                     continue;
 
+                if (now - device.LastSeen <= OfflineTimeout)
+                    continue;
 
+                // احتفظ بالبروتوكول قبل فصل الجلسة
+                var protocol =
+                    device.Session?.ProtocolId ?? "GT06";
 
-                if (now - device.LastSeen > _timeout)
-                {
-                    _registry.Disconnect(
-                        device.Imei);
+                _registry.Disconnect(device.Imei);
 
+                await _deviceChannel.WriteAsync(
+                    new DeviceInfo
+                    {
+                        Imei = device.Imei,
+                        Protocol = protocol,
+                        IsOnline = false,
+                        LastSeen = now
+                    });
 
-
-                    await _deviceChannel.WriteAsync(
-                        new DeviceEntity
-                        {
-                            Imei = device.Imei,
-                            Protocol = "GT06",
-                            Online = false,
-                            LastSeen = now
-                        });
-
-
-
-                    Console.WriteLine(
-                        $"[Heartbeat] Offline : {device.Imei}");
-                }
+                Console.WriteLine(
+                    $"[Heartbeat] Device Offline : {device.Imei}");
             }
 
-
-
-            await Task.Delay(
-                TimeSpan.FromSeconds(30),
-                stoppingToken);
+            try
+            {
+                await Task.Delay(
+                    CheckInterval,
+                    stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
         }
     }
 }

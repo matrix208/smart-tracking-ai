@@ -11,9 +11,10 @@
   </ItemGroup>
 
   <ItemGroup>
-<ProjectReference Include="..\..\Core\Tracking.Core\Tracking.Core.csproj" />
-<ProjectReference Include="..\..\Core\Tracking.Network\Tracking.Network.csproj" />
-<ProjectReference Include="..\..\Core\Tracking.PluginLoader\Tracking.PluginLoader.csproj" />
+    <ProjectReference Include="..\..\Core\Tracking.Core\Tracking.Core.csproj" />
+    <ProjectReference Include="..\..\Core\Tracking.Network\Tracking.Network.csproj" />
+    <ProjectReference Include="..\..\Core\Tracking.PluginLoader\Tracking.PluginLoader.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\Tracking.Storage\Tracking.Storage.csproj" />
   </ItemGroup>
 
 </Project>

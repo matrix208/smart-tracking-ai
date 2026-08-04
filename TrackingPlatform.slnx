@@ -17,7 +17,6 @@
     <Project Path="src/Core/Tracking.Protocol/Tracking.Protocol.csproj" />
     <Project Path="src/Core/Tracking.SDK/Tracking.SDK.csproj" />
     <Project Path="src/Core/Tracking.Security/Tracking.Security.csproj" />
-    <Project Path="src/Core/Tracking.Storage/Tracking.Storage.csproj" />
     <Project Path="src/Core/Tracking.Transport/Tracking.Transport.csproj" />
   </Folder>
   <Folder Name="/src/Infrastructure/">

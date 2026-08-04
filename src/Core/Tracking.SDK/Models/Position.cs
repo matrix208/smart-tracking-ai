@@ -3,6 +3,10 @@ namespace Tracking.SDK.Models;
 public sealed class Position
 {
     /// <summary>
+/// رقم الجهاز
+/// </summary>
+public string DeviceId { get; set; } = string.Empty;
+    /// <summary>
     /// رقم IMEI الخاص بالجهاز
     /// </summary>
     public string Imei { get; set; } = string.Empty;

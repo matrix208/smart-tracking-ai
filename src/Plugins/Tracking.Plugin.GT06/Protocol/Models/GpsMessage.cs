@@ -2,7 +2,7 @@ namespace Tracking.Plugin.GT06.Protocol.Models;
 
 public sealed class GpsMessage
 {
-    public string? DeviceId { get; init; }
+   public string DeviceId { get; set; } = string.Empty;
 
     public double Latitude { get; init; }
 
