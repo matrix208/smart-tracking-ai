@@ -46,7 +46,9 @@ public sealed class DeviceWriterWorker : BackgroundService
                     LastLatitude = device.LastLatitude,
                     LastLongitude = device.LastLongitude,
                     LastSpeed = device.LastSpeed,
-                    LastCourse = device.LastCourse
+                    LastCourse = device.LastCourse,
+                    LastPositionTime = device.LastPositionTime
+
                 };
 
                 await db.Devices.AddAsync(
@@ -71,6 +73,9 @@ public sealed class DeviceWriterWorker : BackgroundService
 
                 if (device.LastCourse.HasValue)
                     existing.LastCourse = device.LastCourse;
+
+                    if (device.LastPositionTime.HasValue)
+                  existing.LastPositionTime = device.LastPositionTime;
             }
 
             await db.SaveChangesAsync(stoppingToken);

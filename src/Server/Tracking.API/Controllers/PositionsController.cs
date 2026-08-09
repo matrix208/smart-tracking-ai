@@ -1,30 +1,26 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Tracking.Storage.Data;
+using Tracking.Application.Interfaces;
 
 namespace Tracking.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class PositionsController : ControllerBase
+public sealed class PositionsController : ControllerBase
 {
-    private readonly TrackingDbContext _context;
+    private readonly IPositionService _positionService;
 
-    public PositionsController(
-        TrackingDbContext context)
+    public PositionsController(IPositionService positionService)
     {
-        _context = context;
+        _positionService = positionService;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAll(
         CancellationToken cancellationToken)
     {
-        var positions = await _context.Positions
-            .AsNoTracking()
-            .OrderByDescending(x => x.ServerTime)
-            .Take(100)
-            .ToListAsync(cancellationToken);
+        var positions = await _positionService.GetLatestAsync(
+            100,
+            cancellationToken);
 
         return Ok(positions);
     }

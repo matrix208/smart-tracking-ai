@@ -1,23 +1,32 @@
-using Tracking.Storage.DependencyInjection;
-using Tracking.Storage.Repositories;
 using Tracking.Storage.Data;
+using Tracking.Storage.DependencyInjection;
+using Tracking.Application.DependencyInjection;
+using Tracking.Network;
+using Tracking.Pipeline;
+using Tracking.Runtime.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Controllers
 builder.Services.AddControllers();
 
-// OpenAPI
 builder.Services.AddOpenApi();
 
-// Tracking Storage (Database + DbContext)
 builder.Services.AddTrackingStorage(
     builder.Configuration);
 
-// Repositories
-builder.Services.AddScoped<IDeviceRepository, DeviceRepository>();
+builder.Services.AddTrackingApplication();
+builder.Services.AddTrackingRuntime();
+
+
+// هنا سنضيف:
+// Plugin Loader
+// Pipeline
+// TCP Server
+// Background Workers
+
 
 var app = builder.Build();
+
 
 using (var scope = app.Services.CreateScope())
 {
@@ -26,15 +35,16 @@ using (var scope = app.Services.CreateScope())
 
     db.Database.EnsureCreated();
 }
-// OpenAPI
+
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
 
+
 app.UseHttpsRedirection();
 
-// Controllers
 app.MapControllers();
 
 app.Run();

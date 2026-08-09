@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/" />
   <Folder Name="/src/Core/">
+    <Project Path="src/Core/Tracking.Application/Tracking.Application.csproj" />
     <Project Path="src/Core/Tracking.Commands/Tracking.Commands.csproj" />
     <Project Path="src/Core/Tracking.Configuration/Tracking.Configuration.csproj" />
     <Project Path="src/Core/Tracking.Core/Tracking.Core.csproj" />
@@ -36,8 +37,12 @@
   </Folder>
   <Folder Name="/src/Services/">
     <Project Path="src/Services/Tracking.Persistence/Tracking.Persistence.csproj" />
+    <Project Path="src/Services/Tracking.Runtime/Tracking.Runtime.csproj" />
   </Folder>
   <Folder Name="/src/Simulator/">
     <Project Path="src/Simulator/Tracking.Simulator/Tracking.Simulator.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Gt06.TestClient/Gt06.TestClient.csproj" />
   </Folder>
 </Solution>

@@ -17,7 +17,8 @@ using Tracking.Commands.Workers;
 using Tracking.Commands.Stores;
 using Tracking.SDK.Models;
 using Tracking.Commands.Lifecycle;
-
+using Microsoft.Extensions.Logging;
+using Tracking.Persistence.Services;
 
 var loader = new PluginLoader();
 
@@ -50,6 +51,14 @@ var pipeline = new PacketPipeline(
 var registry = new DeviceRegistry();
 var commandChannel = new CommandChannel();
 
+var loggerFactory = LoggerFactory.Create(builder =>
+{
+    builder.AddConsole();
+});
+
+var deviceManagerLogger =
+    loggerFactory.CreateLogger<DeviceManager>();
+
 var commandService =
     new CommandService(commandChannel);
 
@@ -77,8 +86,8 @@ Console.WriteLine(
 
 var options =
     new DbContextOptionsBuilder<TrackingDbContext>()
-     .UseSqlite(
-    "Data Source=/Users/mac/TrackingPlatform/tracking.db")
+        .UseSqlite(
+            $"Data Source={dbPath}")
         .Options;
 
 var factory =
@@ -115,16 +124,26 @@ var commandWorker =
         pendingStore,
         commandLifecycle);
 // تشغيل حفظ المواقع
-var positionWriter =
+// تشغيل خدمة حالة الجهاز
+var deviceStateService =
+    new DeviceStateService(factory);
+
+// تشغيل حفظ المواقع
+var positionLogger =
+    loggerFactory.CreateLogger<PositionWriterWorker>();
+
+var positionWorker =
     new PositionWriterWorker(
+        positionLogger,
         positionChannel,
-        factory);
+        factory,
+        deviceStateService);
 
 var workerCts =
     new CancellationTokenSource();
 
 
-_ = positionWriter.StartAsync(
+_ = positionWorker.StartAsync(
     workerCts.Token);
 
 Console.WriteLine(
@@ -154,29 +173,26 @@ Console.WriteLine(
     "Alarm Writer Started");
 
 // مراقبة Heartbeat
+var heartbeatLogger =
+    loggerFactory.CreateLogger<HeartbeatMonitorWorker>();
+
 var heartbeatWorker =
     new HeartbeatMonitorWorker(
+        heartbeatLogger,
         registry,
-        deviceChannel);
+        deviceChannel,
+        deviceStateService);
 
 _ = heartbeatWorker.StartAsync(
     workerCts.Token);
 
-Console.WriteLine(
-    "Heartbeat Monitor Started");
-
-_ = commandWorker.StartAsync(
-    workerCts.Token);
-    
-_ = commandTimeoutWorker.StartAsync(
-    workerCts.Token);
-
-Console.WriteLine(
-    "Command Worker Started");
+loggerFactory.CreateLogger("Program")
+    .LogInformation("Heartbeat Monitor Started");
 
 // Device Manager
-    var deviceManager =
+  var deviceManager =
     new DeviceManager(
+        deviceManagerLogger,
         registry,
         positionChannel,
         deviceChannel,

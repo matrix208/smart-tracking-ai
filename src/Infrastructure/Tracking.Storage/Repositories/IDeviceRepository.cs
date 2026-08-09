@@ -14,4 +14,8 @@ public interface IDeviceRepository
     Task<bool> ExistsAsync(
         string imei,
         CancellationToken cancellationToken = default);
+
+    Task<DeviceEntity?> GetDetailsAsync(
+        string imei,
+        CancellationToken cancellationToken = default);
 }

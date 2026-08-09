@@ -7,45 +7,33 @@ namespace Tracking.Core.Services;
 
 public sealed class DeviceRegistry
 {
+    public void Touch(string imei)
+{
+    if (_devices.TryGetValue(
+        imei,
+        out var device))
+    {
+        device.PacketCount++;
+        device.LastSeen = DateTime.UtcNow;
+        device.IsOnline = true;
+    }
+}
     private readonly ConcurrentDictionary<string, ConnectedDevice> _devices = new();
 
+public bool TryGetBySession(
+    IDeviceSession session,
+    out ConnectedDevice? device)
+{
+    device = _devices.Values.FirstOrDefault(
+        d => d.Session == session);
 
+    return device != null;
+}
     // جميع الأجهزة المسجلة
     public IEnumerable<ConnectedDevice> Devices =>
         _devices.Values;
 
-
-
     // تسجيل جهاز أو تحديث جلسة الاتصال
-    public ConnectedDevice Register(
-        string imei,
-        IDeviceSession session)
-    {
-        return _devices.AddOrUpdate(
-            imei,
-
-            // جهاز جديد
-            _ => new ConnectedDevice
-            {
-                Imei = imei,
-                Session = session,
-                IsOnline = true,
-                ConnectedAt = DateTime.UtcNow,
-                LastSeen = DateTime.UtcNow
-            },
-
-
-            // جهاز موجود
-            (_, existing) =>
-            {
-                existing.Session = session;
-                existing.IsOnline = true;
-                existing.LastSeen = DateTime.UtcNow;
-
-                return existing;
-            });
-    }
-
 
 
     // البحث عن جهاز
@@ -62,35 +50,24 @@ public sealed class DeviceRegistry
 
     // تحديث آخر Heartbeat
     public void UpdateHeartbeat(
-        string imei)
-    {
-        if (_devices.TryGetValue(
-            imei,
-            out var device))
-        {
-            device.LastSeen = DateTime.UtcNow;
-        }
-    }
-
-
-
+      string imei)
+{
+    Touch(imei);
+}
     // تحديث آخر موقع
     public void UpdatePosition(
-        string imei,
-        Position position)
+    string imei,
+    Position position)
+{
+    if (_devices.TryGetValue(
+        imei,
+        out var device))
     {
-        if (_devices.TryGetValue(
-            imei,
-            out var device))
-        {
-            device.LastPosition = position;
-            device.LastSeen = DateTime.UtcNow;
-            device.PacketCount++;
-        }
+        device.LastPosition = position;
     }
 
-
-
+    Touch(imei);
+}
     // إرسال أمر للجهاز
     public async Task<bool> SendAsync(
         string imei,
@@ -118,8 +95,6 @@ public sealed class DeviceRegistry
         return true;
     }
 
-
-
     // فصل الجهاز
     public void Disconnect(
         string imei)
@@ -129,12 +104,9 @@ public sealed class DeviceRegistry
             out var device))
         {
             device.IsOnline = false;
-            device.LastSeen = DateTime.UtcNow;
             device.Session = null;
         }
     }
-
-
 
     // استبدال جلسة الجهاز عند إعادة الاتصال
     public async Task ReplaceSessionAsync(
@@ -157,18 +129,11 @@ public sealed class DeviceRegistry
                 {
                 }
             }
-
-
-
             existing.Session = newSession;
             existing.IsOnline = true;
-            existing.LastSeen = DateTime.UtcNow;
 
             return;
         }
-
-
-
         _devices.TryAdd(
             imei,
             new ConnectedDevice

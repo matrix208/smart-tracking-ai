@@ -243,32 +243,27 @@ public ushort PeekUInt16LE()
 
 public string ReadImei()
 {
-    Span<char> chars = stackalloc char[15];
+    var bytes = ReadSpan(8);
+
+    Span<char> digits = stackalloc char[16];
 
     int index = 0;
 
-    while (index < 15)
+    foreach (byte b in bytes)
     {
-        byte b = ReadByte();
-
         int high = (b >> 4) & 0x0F;
         int low = b & 0x0F;
 
+        if (high > 9 || low > 9)
+            throw new FormatException("Invalid BCD digit in IMEI.");
 
-        if (high <= 9)
-        {
-            chars[index++] = (char)('0' + high);
-        }
-
-
-        if (index < 15 && low <= 9)
-        {
-            chars[index++] = (char)('0' + low);
-        }
+        digits[index++] = (char)('0' + high);
+        digits[index++] = (char)('0' + low);
     }
 
-
-    return new string(chars);
+    // GT06 stores a 15-digit IMEI in 8 BCD bytes,
+    // with a leading padding zero.
+    return new string(digits[1..]);
 }
 // =====================================================
 // UInt24

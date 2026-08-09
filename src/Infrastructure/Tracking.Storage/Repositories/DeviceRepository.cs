@@ -42,4 +42,17 @@ public class DeviceRepository : IDeviceRepository
                 x => x.Imei == imei,
                 cancellationToken);
     }
+    public async Task<DeviceEntity?> GetDetailsAsync(
+    string imei,
+    CancellationToken cancellationToken = default)
+{
+    return await _context.Devices
+        .AsNoTracking()
+        .Include(x => x.DeviceModel)
+        .Include(x => x.Peripherals)
+            .ThenInclude(x => x.PeripheralType)
+        .FirstOrDefaultAsync(
+            x => x.Imei == imei,
+            cancellationToken);
+}
 }

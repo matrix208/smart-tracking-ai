@@ -18,4 +18,5 @@ public sealed class DeviceInfo
     public double? LastSpeed { get; set; }
 
     public double? LastCourse { get; set; }
+    public DateTime? LastPositionTime { get; set; }
 }

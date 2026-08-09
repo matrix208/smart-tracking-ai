@@ -1,3 +1,4 @@
+
 using BinaryReader = Tracking.Protocol.Binary.BinaryReader;
 using Tracking.Plugin.GT06.Protocol.Models;
 
@@ -5,45 +6,88 @@ namespace Tracking.Plugin.GT06.Protocol.Decoders;
 
 public sealed class GpsDecoder
 {
-    public object Decode(BinaryReader reader)
+    public GpsMessage Decode(BinaryReader reader)
     {
-       var timestamp = reader.ReadDateTimeBcd();
+        // =====================================================
+        // Timestamp
+        // =====================================================
 
+        var timestamp = reader.ReadDateTimeBcd();
 
-        // GPS info
+        // =====================================================
+        // GPS information
+        // =====================================================
+
         var gpsInfo = reader.ReadByte();
 
+        // =====================================================
         // Latitude
+        // =====================================================
+
         var latitudeRaw = reader.ReadUInt32BE();
 
+        // =====================================================
         // Longitude
+        // =====================================================
+
         var longitudeRaw = reader.ReadUInt32BE();
 
-        // Speed km/h
+        // =====================================================
+        // Speed
+        // =====================================================
+
         var speed = reader.ReadByte();
 
+        // =====================================================
         // Course + Status
+        // =====================================================
+
         var status = reader.ReadCourseStatus();
 
-            var gpsFix = status.GpsFix;
-            var isWest = status.West;
-            var isSouth = status.South;
+        var course = status.Course;
+        var gpsFix = status.GpsFix;
+        var isWest = status.West;
+        var isSouth = status.South;
 
-            var course = status.Course;
+        // =====================================================
+        // Convert coordinates
+        // GT06: coordinate / 1,800,000
+        // =====================================================
 
+        var latitude = latitudeRaw / 1_800_000.0;
+        var longitude = longitudeRaw / 1_800_000.0;
 
-        var latitude = latitudeRaw / 1800000.0;
-        var longitude = longitudeRaw / 1800000.0;
-
+        // =====================================================
+        // Direction
+        // =====================================================
 
         if (isSouth)
+        {
             latitude = -latitude;
+        }
 
         if (isWest)
+        {
             longitude = -longitude;
+        }
 
-            Console.WriteLine(
-                $"GPS: Lat={latitude}, Lon={longitude}, Speed={speed}, Course={course}, Fix={gpsFix}");
+        // =====================================================
+        // Debug
+        // =====================================================
+
+        Console.WriteLine(
+            $"GPS: " +
+            $"Lat={latitude}, " +
+            $"Lon={longitude}, " +
+            $"Speed={speed}, " +
+            $"Course={course}, " +
+            $"Fix={gpsFix}, " +
+            $"GPSInfo=0x{gpsInfo:X2}");
+
+        // =====================================================
+        // Message
+        // =====================================================
+
         return new GpsMessage
         {
             Latitude = latitude,

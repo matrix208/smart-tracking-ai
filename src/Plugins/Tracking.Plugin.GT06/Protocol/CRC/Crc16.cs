@@ -24,6 +24,6 @@ public static class Crc16
             }
         }
 
-        return crc;
+return (ushort)(crc ^ 0xFFFF);
     }
 }

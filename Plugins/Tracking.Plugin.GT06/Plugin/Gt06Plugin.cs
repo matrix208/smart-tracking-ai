@@ -11,8 +11,13 @@ namespace Tracking.Plugin.GT06.Plugin;
 public sealed class Gt06Plugin : IProtocolPlugin
 {
     private readonly Gt06Decoder _decoder = new();
+
     private readonly LoginEncoder _loginEncoder = new();
+
     private readonly HeartbeatEncoder _heartbeatEncoder = new();
+
+    private readonly CommandEncoder _commandEncoder = new();
+
 
     public PluginManifest Manifest => new()
     {
@@ -28,17 +33,20 @@ public sealed class Gt06Plugin : IProtocolPlugin
         SupportsUdp = false
     };
 
+
     public bool CanHandle(ReadOnlySpan<byte> packet)
     {
         if (packet.Length < 2)
             return false;
 
-        ushort header = System.Buffers.Binary.BinaryPrimitives
+        ushort header =
+            System.Buffers.Binary.BinaryPrimitives
             .ReadUInt16BigEndian(packet);
 
         return header == 0x7878 ||
                header == 0x7979;
     }
+
 
     public async ValueTask<DeviceMessage?> DecodeAsync(
         ReadOnlyMemory<byte> packet,
@@ -46,59 +54,118 @@ public sealed class Gt06Plugin : IProtocolPlugin
         CancellationToken cancellationToken = default)
     {
         var decoded = _decoder.Decode(packet);
-        Console.WriteLine($"GT06 Decoded: {decoded.GetType().Name}");
-        // Login Packet
+
+        Console.WriteLine(
+            $"GT06 Decoded: {decoded.GetType().Name}");
+
+
+        // ==========================
+        // Login
+        // ==========================
         if (decoded is LoginMessage login)
         {
             session.DeviceId = login.Imei;
-            session.ProtocolId = "GT06";
+            session.ProtocolId = "gt06";
 
-            // إرسال Login ACK للجهاز
-            var ack = _loginEncoder.Encode(login.Serial);
+
+            Console.WriteLine(
+                $"PLUGIN Session={session.GetHashCode()} Protocol={session.ProtocolId}");
+
+
+            var ack = _loginEncoder.Encode(
+                login.Imei,
+                login.Serial);
+
 
             await session.SendAsync(ack);
-           Console.WriteLine($"ACK Bytes: {Convert.ToHexString(ack.Span)}");
+
+
+            Console.WriteLine(
+                $"ACK Bytes: {Convert.ToHexString(ack.Span)}");
+
+
             Console.WriteLine(
                 $"GT06 Login ACK sent: {login.Imei}");
         }
-            if (decoded is HeartbeatMessage heartbeat)
-            {
-                var ack = _heartbeatEncoder.Encode(heartbeat.Serial);
 
-                await session.SendAsync(ack);
 
-                Console.WriteLine(
-                    "GT06 Heartbeat ACK sent");
-            }
 
-        var deviceMessage = Gt06MessageMapper.Map(decoded);
+        // ==========================
+        // Heartbeat
+        // ==========================
+        if (decoded is HeartbeatMessage heartbeat)
+        {
+            heartbeat.DeviceId = session.DeviceId;
+
+
+            var ack = _heartbeatEncoder.Encode(
+                heartbeat.Serial);
+
+
+            await session.SendAsync(ack);
+
+
+            Console.WriteLine(
+                "GT06 Heartbeat ACK sent");
+        }
+
+
+
+        // ==========================
+        // GPS Position
+        // ==========================
+        if (decoded is GpsMessage gps)
+        {
+            gps.DeviceId = session.DeviceId;
+
+
+            Console.WriteLine(
+                $"GPS DeviceId Attached: {gps.DeviceId}");
+        }
+
+
+
+        // ==========================
+        // Alarm
+        // ==========================
+        if (decoded is AlarmMessage alarm)
+        {
+            alarm.DeviceId = session.DeviceId;
+        }
+
+
+
+        var deviceMessage =
+            Gt06MessageMapper.Map(decoded);
+
+
 
         if (deviceMessage != null)
         {
             Console.WriteLine(
                 $"GT06 -> {deviceMessage.Type}");
+
+            Console.WriteLine("==============================");
+            Console.WriteLine(
+                $"Session.DeviceId = {session.DeviceId}");
+
+            Console.WriteLine(
+                $"Message.DeviceId = {deviceMessage.DeviceId}");
+
+            Console.WriteLine("==============================");
         }
 
-                if (deviceMessage != null)
-                {
-                    Console.WriteLine("================================");
-                    Console.WriteLine($"Session.DeviceId = {session.DeviceId}");
-                    Console.WriteLine($"Message.DeviceId = {deviceMessage.DeviceId}");
 
-                    if (decoded is LoginMessage l)
-                    {
-                        Console.WriteLine($"Login.Imei       = {l.Imei}");
-                    }
-
-                    Console.WriteLine("================================");
-                }
         return deviceMessage;
     }
+
+
 
     public ValueTask<ReadOnlyMemory<byte>> EncodeAsync(
         DeviceCommand command,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        return ValueTask.FromResult(
+            _commandEncoder.Encode(command));
     }
 }

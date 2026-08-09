@@ -3,29 +3,35 @@ using Microsoft.Extensions.Hosting;
 using Tracking.Persistence.Channels;
 using Tracking.Storage.Data;
 using Tracking.Storage.Entities;
+using Microsoft.Extensions.Logging;
+using Tracking.Persistence.Services;
 
 namespace Tracking.Persistence.Workers;
 
 public sealed class PositionWriterWorker : BackgroundService
 {
+    private readonly DeviceStateService _deviceStateService;
     private readonly PositionChannel _channel;
     private readonly IDbContextFactory<TrackingDbContext> _factory;
+        private readonly ILogger<PositionWriterWorker> _logger;
 
-    public PositionWriterWorker(
-        PositionChannel channel,
-        IDbContextFactory<TrackingDbContext> factory)
-    {
-        _channel = channel;
-        _factory = factory;
-    }
-
+            public PositionWriterWorker(
+            ILogger<PositionWriterWorker> logger,
+            PositionChannel channel,
+            IDbContextFactory<TrackingDbContext> factory,
+            DeviceStateService deviceStateService)
+        {
+            _logger = logger;
+            _channel = channel;
+            _factory = factory;
+            _deviceStateService = deviceStateService;
+        }
 
     protected override async Task ExecuteAsync(
         CancellationToken stoppingToken)
     {
         Console.WriteLine(
             "Position Writer Worker Started");
-
 
         var batch = new List<PositionEntity>();
 
@@ -53,8 +59,6 @@ public sealed class PositionWriterWorker : BackgroundService
                 DeviceTime = position.DeviceTime,
                 ServerTime = position.ServerTime
             });
-
-
             // حفظ فوري للاختبار
             if (batch.Count >= 1)
             {
@@ -68,8 +72,6 @@ public sealed class PositionWriterWorker : BackgroundService
                 batch.Clear();
             }
         }
-
-
         // حفظ المتبقي عند الإغلاق
         if (batch.Count > 0)
         {
@@ -79,61 +81,51 @@ public sealed class PositionWriterWorker : BackgroundService
         }
     }
 
-
-    private async Task SaveBatchAsync(
-        List<PositionEntity> batch,
-        CancellationToken cancellationToken)
+ private async Task SaveBatchAsync(
+    List<PositionEntity> batch,
+    CancellationToken cancellationToken)
+{
+    try
     {
-        try
+        Console.WriteLine($"Saving batch now: {batch.Count}");
+
+        await using var db =
+            await _factory.CreateDbContextAsync(cancellationToken);
+
+        // التأكد أن الجهاز موجود
+        foreach (var position in batch)
         {
-            Console.WriteLine(
-                $"Saving batch now: {batch.Count}");
+            var deviceExists = await db.Devices.AnyAsync(
+                x => x.Imei == position.DeviceId,
+                cancellationToken);
 
-
-            await using var db =
-                await _factory.CreateDbContextAsync(
-                    cancellationToken);
-
-
-            // التأكد أن الجهاز موجود قبل حفظ الموقع
-            foreach (var position in batch)
+            if (!deviceExists)
             {
-                var deviceExists =
-                    await db.Devices
-                        .AnyAsync(
-                            x => x.Imei == position.DeviceId,
-                            cancellationToken);
-
-
-                if (!deviceExists)
-                {
-                    Console.WriteLine(
-                        $"Device not found: {position.DeviceId}");
-
-                    return;
-                }
+                Console.WriteLine($"Device not found: {position.DeviceId}");
+                return;
             }
-
-
-            await db.Positions.AddRangeAsync(
-                batch,
-                cancellationToken);
-
-
-            await db.SaveChangesAsync(
-                cancellationToken);
-
-
-            Console.WriteLine(
-                $"Saved {batch.Count} positions");
         }
-        catch (Exception ex)
+
+        // حفظ المواقع
+        await db.Positions.AddRangeAsync(batch, cancellationToken);
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        // تحديث آخر حالة للجهاز
+        foreach (var position in batch)
         {
-            Console.WriteLine(
-                "POSITION SAVE ERROR:");
-
-            Console.WriteLine(
-                ex.ToString());
+            await _deviceStateService.UpdatePositionAsync(
+                position,
+                cancellationToken);
         }
+
+        Console.WriteLine($"Saved {batch.Count} positions");
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error saving position batch.");
     }
 }
+
+
+    }

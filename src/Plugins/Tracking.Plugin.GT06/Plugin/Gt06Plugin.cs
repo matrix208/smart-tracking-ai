@@ -48,6 +48,21 @@ private readonly CommandEncoder _commandEncoder = new();
         var decoded = _decoder.Decode(packet);
         Console.WriteLine($"GT06 Decoded: {decoded.GetType().Name}");
         // Login Packet
+        // Attach session device id to GPS message
+if (decoded is GpsMessage gps)
+{
+    gps.DeviceId = session.DeviceId;
+
+    Console.WriteLine(
+        $"GPS DeviceId Attached: {gps.DeviceId}");
+}
+
+
+// Attach session device id to Alarm message
+if (decoded is AlarmMessage alarm)
+{
+    alarm.DeviceId = session.DeviceId;
+}
         if (decoded is LoginMessage login)
         {
             session.DeviceId = login.Imei;
@@ -56,26 +71,23 @@ private readonly CommandEncoder _commandEncoder = new();
     $"PLUGIN Session={session.GetHashCode()} Protocol={session.ProtocolId}");
 
             // إرسال Login ACK للجهاز
-            var ack = _loginEncoder.Encode(login.Serial);
+       // إرسال Login ACK للجهاز
+            var ack = _loginEncoder.Encode(
+                login.Imei,
+                login.Serial);
 
             await session.SendAsync(ack);
-           Console.WriteLine($"ACK Bytes: {Convert.ToHexString(ack.Span)}");
+
+            Console.WriteLine(
+                $"ACK Bytes: {Convert.ToHexString(ack.Span)}");
+
             Console.WriteLine(
                 $"GT06 Login ACK sent: {login.Imei}");
-        }
-            if (decoded is HeartbeatMessage heartbeat)
-            {
-                var ack = _heartbeatEncoder.Encode(heartbeat.Serial);
+                        }
 
-                await session.SendAsync(ack);
+                    var deviceMessage = Gt06MessageMapper.Map(decoded);
 
-                Console.WriteLine(
-                    "GT06 Heartbeat ACK sent");
-            }
-
-        var deviceMessage = Gt06MessageMapper.Map(decoded);
-
-        if (deviceMessage != null)
+                    if (deviceMessage != null)
         {
             Console.WriteLine(
                 $"GT06 -> {deviceMessage.Type}");
