@@ -134,3 +134,99 @@ The Smart Tracking AI project represents a robust, scalable, and innovative solu
 
 This application includes free and open-source components under the MIT License. However, certain advanced features and modules may require a separate licensing agreement. Users can freely utilize, modify, and distribute the core functionalities while ensuring transparency and community-driven improvements.
 
+
+
+---
+
+## 10. Installation and Setup
+
+### Requirements
+
+- Git
+- .NET SDK 10.0
+- OpenSSL
+
+### Clone
+
+```bash
+git clone https://github.com/TelalOmer/smart-tracking-ai.git
+cd smart-tracking-ai/TrackingPlatform
+```
+
+### Restore and Build
+
+```bash
+dotnet restore
+dotnet build TrackingPlatform.slnx
+```
+
+### Configure JWT and Administrator
+
+Set the required environment variables before running the API:
+
+```bash
+export Jwt__SigningKey=\"$(openssl rand -base64 48)\"
+export Admin__Username=\"admin\"
+export Admin__Password=\"ChangeThisPassword_$(openssl rand -hex 8)\"
+```
+
+Never commit these values to Git.
+
+### Run Tracking API
+
+```bash
+dotnet run --project src/Server/Tracking.API/Tracking.API.csproj
+```
+
+API: `http://localhost:5221`
+
+GT06 TCP Server: `0.0.0.0:5001`
+
+Test TCP:
+
+```bash
+nc -vz 127.0.0.1 5001
+```
+
+### Test API
+
+```bash
+curl -s http://localhost:5221/api/devices
+curl -s http://localhost:5221/api/positions
+```
+
+### Run GT06 Simulator
+
+```bash
+dotnet run --project src/Simulator/Tracking.Simulator/Tracking.Simulator.csproj
+```
+
+### Run GT06 Test Client
+
+```bash
+dotnet run --project tests/Gt06.TestClient/Gt06.TestClient.csproj
+```
+
+### Database
+
+The application uses a local SQLite database named `tracking.db` during development. Database files are excluded from Git.
+
+### GT06 Plugin
+
+- ID: `gt06`
+- Name: `GT06 Protocol`
+- Assembly: `Tracking.Plugin.GT06.dll`
+- EntryPoint: `Tracking.Plugin.GT06.Plugin.Gt06Plugin`
+
+### Development Ports
+
+| Service | Port |
+|---|---:|
+| Tracking API | 5221 |
+| GT06 TCP Server | 5001 |
+
+### Verification
+
+The project has been verified from a clean Git clone. The solution successfully restores and builds, the GT06 plugin loads, TCP port 5001 listens successfully, the API starts on port 5221, GT06 packets are decoded, GPS positions are persisted, device states are updated, and alarms are stored.
+
+The clean build completed successfully with exit code `0`.
