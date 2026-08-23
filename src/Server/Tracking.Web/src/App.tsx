@@ -1,66 +1,21 @@
-import { useEffect, useRef, useState } from 'react'
-import { Dashboard } from './pages/Dashboard'
+import { useEffect, useState } from 'react'
+import Dashboard from './pages/Dashboard'
+import LiveMap from './pages/LiveMap'
 import './App.css'
 
 export type Language = 'ar' | 'en'
 
-const ACCENT_PRESETS = [
-  { hex: '#17e3a8', ar: 'أخضر إشارة', en: 'Signal green' },
-  { hex: '#5b9dff', ar: 'أزرق', en: 'Blue' },
-  { hex: '#f4b740', ar: 'كهرماني', en: 'Amber' },
-  { hex: '#ff5d6c', ar: 'أحمر', en: 'Red' },
-  { hex: '#a78bfa', ar: 'بنفسجي', en: 'Purple' },
-  { hex: '#f472b6', ar: 'وردي', en: 'Pink' },
-]
-
-function hexToRgb(hex: string) {
-  const clean = hex.replace('#', '')
-  const full =
-    clean.length === 3
-      ? clean.split('').map((c) => c + c).join('')
-      : clean
-  const value = Number.parseInt(full, 16)
-
-  if (Number.isNaN(value)) {
-    return { r: 23, g: 227, b: 168 }
-  }
-
-  return {
-    r: (value >> 16) & 255,
-    g: (value >> 8) & 255,
-    b: value & 255,
-  }
-}
 
 function App() {
+  const [page, setPage] = useState<'dashboard' | 'map'>('dashboard')
   const [language, setLanguage] = useState<Language>(() => {
     const saved = localStorage.getItem('tracking-language')
     return saved === 'en' ? 'en' : 'ar'
   })
 
-  const [accentColor, setAccentColor] = useState<string>(() => {
-    return localStorage.getItem('tracking-accent') || '#17e3a8'
-  })
 
-  const [colorMenuOpen, setColorMenuOpen] = useState(false)
-  const colorPickerRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    if (!colorMenuOpen) return
 
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        colorPickerRef.current &&
-        !colorPickerRef.current.contains(event.target as Node)
-      ) {
-        setColorMenuOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () =>
-      document.removeEventListener('mousedown', handleClickOutside)
-  }, [colorMenuOpen])
 
   useEffect(() => {
     localStorage.setItem('tracking-language', language)
@@ -69,15 +24,17 @@ function App() {
     document.body.dir = language === 'ar' ? 'rtl' : 'ltr'
   }, [language])
 
+
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    return localStorage.getItem('tracking-theme') === 'light'
+      ? 'light'
+      : 'dark'
+  })
+
   useEffect(() => {
-    localStorage.setItem('tracking-accent', accentColor)
-
-    const { r, g, b } = hexToRgb(accentColor)
-    const root = document.documentElement
-
-    root.style.setProperty('--signal', accentColor)
-    root.style.setProperty('--signal-dim', `rgba(${r}, ${g}, ${b}, 0.11)`)
-  }, [accentColor])
+    localStorage.setItem('tracking-theme', theme)
+    document.documentElement.dataset.theme = theme
+  }, [theme])
 
   const isArabic = language === 'ar'
 
@@ -98,15 +55,23 @@ function App() {
             {isArabic ? 'الرئيسية' : 'MAIN'}
           </div>
 
-          <a className="active" href="#">
+          <button
+            type="button"
+            className={page === 'dashboard' ? 'active' : ''}
+            onClick={() => setPage('dashboard')}
+          >
             <span>▦</span>
             {isArabic ? 'لوحة التحكم' : 'Dashboard'}
-          </a>
+          </button>
 
-          <a href="#">
+          <button
+            type="button"
+            className={page === 'map' ? 'active' : ''}
+            onClick={() => setPage('map')}
+          >
             <span>⌖</span>
             {isArabic ? 'الخريطة الحية' : 'Live Map'}
-          </a>
+          </button>
 
           <a href="#">
             <span>▣</span>
@@ -156,68 +121,28 @@ function App() {
             </div>
           </div>
 
-          <div className="color-picker" ref={colorPickerRef}>
-            <button
-              type="button"
-              className="color-picker-trigger"
-              onClick={() => setColorMenuOpen((open) => !open)}
-              aria-expanded={colorMenuOpen}
-              aria-label={
-                isArabic
-                  ? 'تخصيص لون الواجهة'
-                  : 'Customize accent color'
-              }
-            >
-              <span
-                className="color-swatch"
-                style={{ background: accentColor }}
-              />
-              <span className="color-picker-label">
-                {isArabic ? 'لون الواجهة' : 'Accent color'}
-              </span>
-              <span className="color-picker-caret">
-                {colorMenuOpen ? '▴' : '▾'}
-              </span>
-            </button>
-
-            {colorMenuOpen && (
-              <div className="color-picker-panel">
-                <div className="color-swatches">
-                  {ACCENT_PRESETS.map((preset) => (
-                    <button
-                      key={preset.hex}
-                      type="button"
-                      className={`swatch-btn ${
-                        accentColor.toLowerCase() === preset.hex
-                          ? 'active'
-                          : ''
-                      }`}
-                      style={{ background: preset.hex }}
-                      title={isArabic ? preset.ar : preset.en}
-                      aria-label={isArabic ? preset.ar : preset.en}
-                      onClick={() => {
-                        setAccentColor(preset.hex)
-                        setColorMenuOpen(false)
-                      }}
-                    />
-                  ))}
-                </div>
-
-                <label className="custom-color-row">
-                  <span>
-                    {isArabic ? 'لون مخصص' : 'Custom color'}
-                  </span>
-                  <input
-                    type="color"
-                    value={accentColor}
-                    onChange={(event) =>
-                      setAccentColor(event.target.value)
-                    }
-                  />
-                </label>
-              </div>
-            )}
-          </div>
+          <button
+            type="button"
+            className="theme-switch"
+            onClick={() =>
+              setTheme(theme === 'dark' ? 'light' : 'dark')
+            }
+            aria-label={
+              theme === 'dark'
+                ? 'تفعيل الوضع الفاتح'
+                : 'تفعيل الوضع الداكن'
+            }
+          >
+            <span className="theme-icon">
+              {theme === 'dark' ? '☀' : '☾'}
+            </span>
+            <span className="theme-label">
+              {theme === 'dark' ? 'الوضع الفاتح' : 'الوضع الداكن'}
+            </span>
+            <span className="theme-state">
+              {theme === 'dark' ? 'DARK' : 'LIGHT'}
+            </span>
+          </button>
 
           <button
             className="language-switch"
@@ -256,7 +181,11 @@ function App() {
       </aside>
 
       <main className="main">
-        <Dashboard language={language} />
+        {page === 'dashboard' ? (
+          <Dashboard language={language} />
+        ) : (
+          <LiveMap language={language} />
+        )}
       </main>
     </div>
   )

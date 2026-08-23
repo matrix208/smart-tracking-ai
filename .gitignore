@@ -34,3 +34,38 @@ runtime/packages/
 # Archives
 *.zip
 tracking.db
+
+# Dependencies / build output
+node_modules/
+dist/
+
+# SQLite runtime files
+*.db-shm
+*.db-wal
+
+# Local backups
+src-backup/
+*.backup
+*.theme-backup
+*.before-map
+*.before-theme
+*.save
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Local AI/editor folders
+.agent/
+.claude/
+.codebuddy/
+.codex/
+.continue/
+.cursor/
+.gemini/
+.kiro/
+.opencode/
+.qoder/
+.roo/
+.trae/
+.windsurf/

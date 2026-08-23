@@ -23,6 +23,9 @@ public sealed class TrackingDbContext : DbContext
     public DbSet<AlarmEntity> Alarms =>
         Set<AlarmEntity>();
 
+    public DbSet<UserEntity> Users =>
+        Set<UserEntity>();
+
         public DbSet<DeviceModelEntity> DeviceModels => Set<DeviceModelEntity>();
 
 public DbSet<PeripheralTypeEntity> PeripheralTypes => Set<PeripheralTypeEntity>();

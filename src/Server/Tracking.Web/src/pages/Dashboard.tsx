@@ -1,713 +1,714 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  getDevices,
-  getPositions,
-  getDeviceStates,
-  type Device,
-  type Position,
-  type DeviceState,
-} from '../api/trackingApi'
+import { useEffect, useMemo, useState } from 'react'
+
+import { getDevices, getPositions, type Device } from '../api/trackingApi'
+import { DeviceTable } from '../components/DeviceTable'
 import { StatCard } from '../components/StatCard'
-import { TrackingMap } from '../components/map/TrackingMap'
 import type { Language } from '../App'
 
-function formatTime(
-  value?: string | null,
-  language: Language = 'ar',
-) {
-  if (!value) return '—'
-
-  return new Date(value).toLocaleTimeString(
-    language === 'ar' ? 'ar-SA' : 'en-US',
-    {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    },
-  )
+type Position = {
+  deviceId: string
+  latitude: number
+  longitude: number
+  speed: number
+  course: number
+  valid: boolean
+  deviceTime: string
+  serverTime: string
 }
 
-function formatCoordinate(value?: number | null) {
-  if (value == null) return '—'
-  return value.toFixed(6)
-}
-
-function getDeviceStatus(
-  device: Device,
-  state?: DeviceState,
-) {
-  if (!device.isOnline) return 'offline'
-
-  const speed =
-    state?.speed ??
-    device.lastSpeed ??
-    0
-
-  if (speed > 3) return 'moving'
-
-  return 'idle'
-}
-
-export function Dashboard({
-  language,
-}: {
+interface DashboardProps {
   language: Language
-}) {
+}
+
+function Dashboard({ language }: DashboardProps) {
   const isArabic = language === 'ar'
 
   const [devices, setDevices] = useState<Device[]>([])
-  const [, setPositions] = useState<Position[]>([])
-  const [states, setStates] = useState<DeviceState[]>([])
-  const [selectedImei, setSelectedImei] =
-    useState<string | null>(null)
-
+  const [positions, setPositions] = useState<Position[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [lastRefresh, setLastRefresh] =
-    useState<Date | null>(null)
+  const [lastUpdate, setLastUpdate] = useState(new Date())
 
-  const loadData = useCallback(async () => {
+  const loadData = async () => {
     try {
-      setError(null)
-
-      const [
-        deviceData,
-        positionData,
-        stateData,
-      ] = await Promise.all([
+      const [deviceData, positionData] = await Promise.all([
         getDevices(),
         getPositions(),
-        getDeviceStates(),
       ])
 
-      setDevices(deviceData)
-      setPositions(positionData)
-      setStates(stateData)
-      setLastRefresh(new Date())
-
-      setSelectedImei((current) => {
-        if (
-          current &&
-          deviceData.some(
-            (device) => device.imei === current,
-          )
-        ) {
-          return current
-        }
-
-        return deviceData[0]?.imei ?? null
-      })
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : isArabic
-            ? 'تعذر الاتصال بالخادم'
-            : 'Unable to connect to server',
-      )
+      setDevices(deviceData ?? [])
+      setPositions(positionData ?? [])
+      setLastUpdate(new Date())
+    } catch (error) {
+      console.error('Dashboard data loading failed:', error)
     } finally {
       setLoading(false)
     }
-  }, [isArabic])
+  }
 
   useEffect(() => {
-    void loadData()
+    loadData()
 
-    const timer = window.setInterval(
-      () => void loadData(),
-      10_000,
-    )
+    const timer = window.setInterval(loadData, 15000)
 
     return () => window.clearInterval(timer)
-  }, [loadData])
+  }, [])
 
-  const onlineDevices = useMemo(
-    () =>
-      devices.filter(
-        (device) => device.isOnline,
-      ),
-    [devices],
-  )
+  const stats = useMemo(() => {
+    const online = devices.filter(
+      (device) => device.isOnline === true,
+    ).length
 
-  const offlineDevices = useMemo(
-    () =>
-      devices.filter(
-        (device) => !device.isOnline,
-      ),
-    [devices],
-  )
+    const offline = devices.length - online
 
-  const movingDevices = useMemo(
-    () =>
-      devices.filter((device) => {
-        const state = states.find(
-          (item) => item.deviceId === device.imei,
-        )
+    const moving = devices.filter(
+      (device) =>
+        device.isOnline === true &&
+        (device.lastSpeed ?? 0) > 0,
+    ).length
 
-        return getDeviceStatus(device, state) === 'moving'
-      }),
-    [devices, states],
-  )
+    const stopped = devices.filter(
+      (device) =>
+        device.isOnline === true &&
+        (device.lastSpeed ?? 0) === 0,
+    ).length
 
-  const idleDevices = useMemo(
-    () =>
-      devices.filter((device) => {
-        const state = states.find(
-          (item) => item.deviceId === device.imei,
-        )
+    return {
+      total: devices.length,
+      online,
+      offline,
+      moving,
+      stopped,
+    }
+  }, [devices])
 
-        return getDeviceStatus(device, state) === 'idle'
-      }),
-    [devices, states],
-  )
+  const latestPositions = positions.slice(0, 8)
 
-  const selectedDevice = useMemo(
-    () =>
-      devices.find(
-        (device) =>
-          device.imei === selectedImei,
-      ) ?? null,
-    [devices, selectedImei],
-  )
+  const systemItems = [
+    {
+      code: 'API',
+      title: 'Tracking API',
+      subtitle: isArabic ? 'الخدمة الأساسية' : 'Core service',
+      status: isArabic ? 'متصل' : 'Online',
+    },
+    {
+      code: 'TCP',
+      title: 'GT06 Server',
+      subtitle: 'Port 5001',
+      status: isArabic ? 'متصل' : 'Online',
+    },
+    {
+      code: 'DB',
+      title: 'Database',
+      subtitle: 'SQLite',
+      status: isArabic ? 'متصل' : 'Online',
+    },
+    {
+      code: 'PLG',
+      title: 'GT06 Plugin',
+      subtitle: isArabic ? 'البروتوكول محمّل' : 'Protocol loaded',
+      status: isArabic ? 'نشط' : 'Active',
+    },
+  ]
 
-  const selectedState = useMemo(
-    () =>
-      states.find(
-        (state) =>
-          state.deviceId === selectedImei,
-      ) ?? null,
-    [states, selectedImei],
-  )
+  const locale = isArabic ? 'ar-SA' : 'en-US'
 
   return (
-    <div className="dashboard">
-      <div className="topbar">
-        <div>
-          <div className="page-title">
-            {isArabic
-              ? 'أسطول اليوم'
-              : "Today's Fleet"}
+    <main className="dashboard-page">
 
-            <span className="accent">
-              {' '}
-              — {onlineDevices.length}{' '}
-              {isArabic
-                ? 'مركبة متصلة'
-                : 'vehicles online'}
-            </span>
+      <section className="dashboard-hero">
+        <div className="dashboard-hero-content">
+
+          <div className="dashboard-hero-kicker">
+            <span className="hero-live-dot" />
+            TRACKING PLATFORM
           </div>
 
-          <div className="page-sub">
-            {isArabic
-              ? 'آخر تحديث للمواقع: '
-              : 'Last location update: '}
+          <h1>
+            {isArabic ? 'لوحة التحكم' : 'Dashboard'}
+          </h1>
 
-            <span className="num">
-              {lastRefresh
-                ? formatTime(
-                    lastRefresh.toISOString(),
-                    language,
-                  )
-                : '—'}
+          <p>
+            {isArabic
+              ? 'مركز المراقبة الرئيسي لأسطولك — تابع المركبات والاتصالات وبيانات التتبع لحظة بلحظة.'
+              : 'Your fleet command center — monitor vehicles, connections and tracking data in real time.'}
+          </p>
+
+          <div className="hero-meta">
+
+            <span className="hero-meta-item">
+              <span className="meta-dot green" />
+
+              {isArabic
+                ? 'النظام يعمل'
+                : 'System operational'}
             </span>
 
-            {' · '}
+            <span className="hero-divider" />
 
-            {isArabic
-              ? 'البيانات من Tracking API'
-              : 'Live data from Tracking API'}
+            <span className="hero-meta-item mono">
+              {isArabic ? 'آخر تحديث ' : 'Last update '}
+
+              {lastUpdate.toLocaleTimeString(locale)}
+            </span>
+
           </div>
         </div>
 
-        <div className="topbar-actions">
-          <div className="api-indicator">
-            <span className="status-dot online" />
-            <span>
-              {isArabic
-                ? 'متصل بالخادم'
-                : 'API Connected'}
-            </span>
+        <div className="hero-orbit">
+
+          <div className="orbit orbit-one" />
+          <div className="orbit orbit-two" />
+          <div className="orbit orbit-three" />
+
+          <div className="orbit-core">
+            <span>GPS</span>
+            <strong>{stats.online}</strong>
+            <small>
+              {isArabic ? 'متصل' : 'ONLINE'}
+            </small>
           </div>
 
-          <button
-            className="btn-primary"
-            onClick={() => void loadData()}
-          >
-            ↻
-            {isArabic ? ' تحديث' : ' Refresh'}
-          </button>
+          {devices.slice(0, 6).map((device, index) => (
+            <span
+              key={device.id ?? device.imei ?? index}
+              className={`orbit-point orbit-point-${index + 1} ${
+                device.isOnline ? 'online' : 'offline'
+              }`}
+              title={device.imei}
+            />
+          ))}
+
         </div>
-      </div>
+      </section>
 
-      {error && (
-        <div className="error-banner">
-          <span>⚠</span>
+      <section className="stats-grid dashboard-stats">
 
-          <div>
-            <strong>
-              {isArabic
-                ? 'تعذر تحميل البيانات'
-                : 'Unable to load data'}
-            </strong>
-
-            <div>{error}</div>
-          </div>
-
-          <button
-            onClick={() => void loadData()}
-          >
-            {isArabic
-              ? 'إعادة المحاولة'
-              : 'Retry'}
-          </button>
-        </div>
-      )}
-
-      <div className="stats-row">
         <StatCard
-          title={
-            isArabic
-              ? 'إجمالي الأجهزة'
-              : 'Total Devices'
-          }
-          value={devices.length}
+          title={isArabic ? 'إجمالي المركبات' : 'Total Vehicles'}
+          value={stats.total}
+          icon="🚘"
           subtitle={
             isArabic
-              ? 'الأجهزة المسجلة'
-              : 'Registered devices'
+              ? 'جميع المركبات المسجلة'
+              : 'All registered vehicles'
           }
-          icon="▣"
         />
 
         <StatCard
-          title={
-            isArabic
-              ? 'متصل الآن'
-              : 'Online Now'
-          }
-          value={onlineDevices.length}
-          subtitle={
-            isArabic
-              ? 'اتصال نشط'
-              : 'Active connections'
-          }
+          title={isArabic ? 'متصلة الآن' : 'Online Now'}
+          value={stats.online}
           icon="●"
+          subtitle={
+            isArabic
+              ? 'متصلة بالخادم الآن'
+              : 'Currently connected'
+          }
         />
 
         <StatCard
-          title={
-            isArabic
-              ? 'تتحرك'
-              : 'Moving'
-          }
-          value={movingDevices.length}
-          subtitle={
-            isArabic
-              ? 'أجهزة سرعتها أكبر من 3 كم/س'
-              : 'Speed above 3 km/h'
-          }
+          title={isArabic ? 'تتحرك' : 'Moving'}
+          value={stats.moving}
           icon="↗"
+          subtitle={
+            isArabic
+              ? 'مركبات قيد الحركة'
+              : 'Vehicles in motion'
+          }
         />
 
         <StatCard
-          title={
-            isArabic
-              ? 'غير متصل'
-              : 'Offline'
-          }
-          value={offlineDevices.length}
+          title={isArabic ? 'متوقفة' : 'Stopped'}
+          value={stats.stopped}
+          icon="Ⅱ"
           subtitle={
             isArabic
-              ? 'أجهزة غير متصلة'
-              : 'Disconnected devices'
+              ? 'متصلة ولكن متوقفة'
+              : 'Connected but stopped'
           }
-          icon="○"
         />
-      </div>
 
-      <div className="grid-main">
-        <div className="panel map-panel">
-          <div className="panel-head">
+        <StatCard
+          title={isArabic ? 'غير متصلة' : 'Offline'}
+          value={stats.offline}
+          icon="○"
+          subtitle={
+            isArabic
+              ? 'لا يوجد اتصال حالي'
+              : 'No current connection'
+          }
+        />
+
+      </section>
+
+      <section className="dashboard-grid dashboard-main-grid">
+
+        <article className="dashboard-card fleet-overview-card">
+
+          <div className="card-heading">
+
             <div>
-              <div className="panel-title">
-                {isArabic
-                  ? 'خريطة التتبع اللحظي'
-                  : 'Live Tracking Map'}
+              <span className="card-kicker">
+                FLEET OVERVIEW
+              </span>
 
+              <h2>
+                {isArabic
+                  ? 'نظرة عامة على الأسطول'
+                  : 'Fleet Overview'}
+              </h2>
+            </div>
+
+            <button
+              type="button"
+              className="refresh-button"
+              onClick={loadData}
+              disabled={loading}
+            >
+              <span className={loading ? 'refresh-spin' : ''}>
+                ↻
+              </span>
+
+              {loading
+                ? isArabic
+                  ? 'جاري التحديث'
+                  : 'Refreshing'
+                : isArabic
+                  ? 'تحديث البيانات'
+                  : 'Refresh data'}
+            </button>
+
+          </div>
+
+          <div className="fleet-overview">
+
+            <div className="fleet-chart">
+
+              <div className="chart-grid-line line-1" />
+              <div className="chart-grid-line line-2" />
+              <div className="chart-grid-line line-3" />
+
+              <div className="chart-ring ring-large" />
+              <div className="chart-ring ring-small" />
+
+              <div className="chart-center">
+                <span>ACTIVE</span>
+
+                <strong>{stats.online}</strong>
+
+                <small>
+                  {isArabic
+                    ? 'مركبة متصلة'
+                    : 'connected vehicles'}
+                </small>
+              </div>
+
+              <div className="chart-scan" />
+
+            </div>
+
+            <div className="fleet-breakdown">
+
+              <div className="breakdown-title">
                 <span>
                   {isArabic
-                    ? 'تحديث كل 10 ثوانٍ'
-                    : 'Updates every 10 seconds'}
+                    ? 'حالة المركبات'
+                    : 'Vehicle Status'}
                 </span>
+
+                <strong>{stats.total}</strong>
               </div>
-            </div>
 
-            <div className="live-badge">
-              <span className="status-dot online" />
-              LIVE
-            </div>
-          </div>
+              <div className="breakdown-item">
 
-          <div className="map-container">
-            <TrackingMap
-              devices={devices}
-              selectedImei={selectedImei}
-              onSelect={setSelectedImei}
-            />
-          </div>
-        </div>
+                <div className="breakdown-label">
+                  <span className="legend-dot green" />
 
-        <div className="panel">
-          <div className="panel-head">
-            <div className="panel-title">
-              {isArabic
-                ? 'حالة الأجهزة'
-                : 'Device Status'}
-
-              <span>
-                {isArabic
-                  ? `${devices.length} جهاز`
-                  : `${devices.length} devices`}
-              </span>
-            </div>
-          </div>
-
-          <div className="device-summary">
-            <div className="summary-item">
-              <span className="summary-dot moving" />
-              <span>
-                {isArabic
-                  ? 'تتحرك'
-                  : 'Moving'}
-              </span>
-              <strong>
-                {movingDevices.length}
-              </strong>
-            </div>
-
-            <div className="summary-item">
-              <span className="summary-dot idle" />
-              <span>
-                {isArabic
-                  ? 'متوقفة'
-                  : 'Idle'}
-              </span>
-              <strong>
-                {idleDevices.length}
-              </strong>
-            </div>
-
-            <div className="summary-item">
-              <span className="summary-dot offline" />
-              <span>
-                {isArabic
-                  ? 'غير متصلة'
-                  : 'Offline'}
-              </span>
-              <strong>
-                {offlineDevices.length}
-              </strong>
-            </div>
-          </div>
-
-          <div className="selected-device-box">
-            <div className="panel-title">
-              {isArabic
-                ? 'الجهاز المحدد'
-                : 'Selected Device'}
-            </div>
-
-            {selectedDevice ? (
-              <>
-                <div className="selected-imei">
-                  {selectedDevice.imei}
+                  <span>
+                    {isArabic ? 'متحركة' : 'Moving'}
+                  </span>
                 </div>
+
+                <strong>{stats.moving}</strong>
+
+              </div>
+
+              <div className="breakdown-item">
+
+                <div className="breakdown-label">
+                  <span className="legend-dot amber" />
+
+                  <span>
+                    {isArabic ? 'متوقفة' : 'Stopped'}
+                  </span>
+                </div>
+
+                <strong>{stats.stopped}</strong>
+
+              </div>
+
+              <div className="breakdown-item">
+
+                <div className="breakdown-label">
+                  <span className="legend-dot red" />
+
+                  <span>
+                    {isArabic ? 'غير متصلة' : 'Offline'}
+                  </span>
+                </div>
+
+                <strong>{stats.offline}</strong>
+
+              </div>
+
+              <div className="fleet-progress">
 
                 <div
-                  className={`selected-status ${
-                    selectedDevice.isOnline
-                      ? 'online'
-                      : 'offline'
-                  }`}
-                >
-                  <span className="status-dot" />
+                  className="fleet-progress-fill"
+                  style={{
+                    width:
+                      stats.total > 0
+                        ? `${Math.round(
+                            (stats.online / stats.total) * 100,
+                          )}%`
+                        : '0%',
+                  }}
+                />
 
-                  {selectedDevice.isOnline
-                    ? isArabic
-                      ? 'متصل'
-                      : 'ONLINE'
-                    : isArabic
-                      ? 'غير متصل'
-                      : 'OFFLINE'}
-                </div>
-
-                <div className="selected-grid">
-                  <div>
-                    <small>
-                      {isArabic
-                        ? 'السرعة'
-                        : 'Speed'}
-                    </small>
-                    <strong>
-                      {(
-                        selectedState?.speed ??
-                        selectedDevice.lastSpeed ??
-                        0
-                      ).toFixed(0)}{' '}
-                      km/h
-                    </strong>
-                  </div>
-
-                  <div>
-                    <small>
-                      {isArabic
-                        ? 'الاتجاه'
-                        : 'Course'}
-                    </small>
-                    <strong>
-                      {(
-                        selectedState?.course ??
-                        selectedDevice.lastCourse ??
-                        0
-                      ).toFixed(0)}
-                      °
-                    </strong>
-                  </div>
-
-                  <div>
-                    <small>Latitude</small>
-                    <strong>
-                      {formatCoordinate(
-                        selectedState?.latitude ??
-                          selectedDevice.lastLatitude,
-                      )}
-                    </strong>
-                  </div>
-
-                  <div>
-                    <small>Longitude</small>
-                    <strong>
-                      {formatCoordinate(
-                        selectedState?.longitude ??
-                          selectedDevice.lastLongitude,
-                      )}
-                    </strong>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="empty-state">
-                {isArabic
-                  ? 'اختر جهازًا من القائمة'
-                  : 'Select a device'}
               </div>
-            )}
-          </div>
-        </div>
-      </div>
 
-      <div className="panel devices-panel">
-        <div className="panel-head">
-          <div className="panel-title">
-            {isArabic
-              ? 'قائمة الأجهزة'
-              : 'Devices'}
+              <small className="fleet-progress-label">
+
+                {stats.total > 0
+                  ? Math.round(
+                      (stats.online / stats.total) * 100,
+                    )
+                  : 0}
+                %{' '}
+                {isArabic
+                  ? 'من الأسطول متصل'
+                  : 'of fleet connected'}
+
+              </small>
+
+            </div>
+          </div>
+        </article>
+
+        <article className="dashboard-card system-health-card">
+
+          <div className="card-heading">
+
+            <div>
+
+              <span className="card-kicker">
+                SYSTEM HEALTH
+              </span>
+
+              <h2>
+                {isArabic
+                  ? 'صحة النظام'
+                  : 'System Health'}
+              </h2>
+
+            </div>
+
+            <span className="system-health-badge">
+
+              <span className="status-dot online" />
+
+              {isArabic ? 'سليم' : 'Healthy'}
+
+            </span>
+
+          </div>
+
+          <div className="health-list">
+
+            {systemItems.map((item) => (
+              <div className="health-item" key={item.code}>
+
+                <span className="health-icon">
+                  {item.code}
+                </span>
+
+                <div className="health-info">
+
+                  <strong>{item.title}</strong>
+                  <span>{item.subtitle}</span>
+
+                </div>
+
+                <b className="health-ok">
+
+                  <span />
+
+                  {item.status}
+
+                </b>
+
+              </div>
+            ))}
+
+          </div>
+
+          <div className="system-footer">
 
             <span>
               {isArabic
-                ? `${devices.length} جهاز`
-                : `${devices.length} devices`}
+                ? 'جميع الخدمات الأساسية تعمل بشكل طبيعي'
+                : 'All core services are operating normally'}
+            </span>
+
+            <span className="mono">
+              100%
+            </span>
+
+          </div>
+
+        </article>
+
+      </section>
+
+      <section className="dashboard-card devices-section">
+
+        <div className="card-heading">
+
+          <div>
+
+            <span className="card-kicker">
+              VEHICLES
+            </span>
+
+            <h2>
+              {isArabic ? 'المركبات' : 'Vehicles'}
+            </h2>
+
+            <p className="card-description">
+
+              {isArabic
+                ? 'قائمة المركبات المسجلة وحالتها الحالية.'
+                : 'Registered vehicles and their current status.'}
+
+            </p>
+
+          </div>
+
+          <div className="record-count">
+            <strong>{devices.length}</strong>
+
+            <span>
+              {isArabic ? 'مركبة' : 'vehicles'}
             </span>
           </div>
 
-          <div className="device-count">
-            {onlineDevices.length}{' '}
-            {isArabic ? 'متصل' : 'online'}
-          </div>
         </div>
 
-        {loading ? (
-          <div className="loading-state">
-            {isArabic
-              ? 'جاري تحميل الأجهزة...'
-              : 'Loading devices...'}
+        <DeviceTable
+          devices={devices}
+          language={language}
+        />
+
+      </section>
+
+      <section className="dashboard-card positions-section">
+
+        <div className="card-heading">
+
+          <div>
+
+            <span className="card-kicker">
+              LATEST TELEMETRY
+            </span>
+
+            <h2>
+              {isArabic
+                ? 'آخر بيانات التتبع'
+                : 'Latest Telemetry'}
+            </h2>
+
+            <p className="card-description">
+
+              {isArabic
+                ? 'أحدث المواقع والبيانات المستلمة من أجهزة التتبع.'
+                : 'Latest locations and data received from tracking devices.'}
+
+            </p>
+
           </div>
-        ) : devices.length === 0 ? (
+
+          <div className="telemetry-live">
+
+            <span className="status-dot online" />
+
+            LIVE
+
+          </div>
+
+        </div>
+
+        {latestPositions.length === 0 ? (
+
           <div className="empty-state">
-            {isArabic
-              ? 'لا توجد أجهزة مسجلة'
-              : 'No registered devices'}
+
+            <div className="empty-icon">
+              ⌁
+            </div>
+
+            <strong>
+              {isArabic
+                ? 'لا توجد بيانات تتبع حديثة'
+                : 'No recent tracking data'}
+            </strong>
+
+            <span>
+              {isArabic
+                ? 'ستظهر بيانات الأجهزة هنا عند وصولها.'
+                : 'Device data will appear here when received.'}
+            </span>
+
           </div>
+
         ) : (
-          <div className="device-table-wrap">
-            <table>
+
+          <div className="telemetry-table-wrapper">
+
+            <table className="telemetry-table">
+
               <thead>
+
                 <tr>
+
                   <th>
-                    {isArabic
-                      ? 'الجهاز'
-                      : 'Device'}
+                    {isArabic ? 'الجهاز' : 'Device'}
                   </th>
 
                   <th>
                     {isArabic
-                      ? 'الحالة'
-                      : 'Status'}
+                      ? 'الإحداثيات'
+                      : 'Coordinates'}
+                  </th>
+
+                  <th>
+                    {isArabic ? 'السرعة' : 'Speed'}
+                  </th>
+
+                  <th>
+                    {isArabic ? 'الاتجاه' : 'Course'}
+                  </th>
+
+                  <th>
+                    GPS
                   </th>
 
                   <th>
                     {isArabic
-                      ? 'السرعة'
-                      : 'Speed'}
+                      ? 'وقت الخادم'
+                      : 'Server Time'}
                   </th>
 
-                  <th>Latitude</th>
-
-                  <th>Longitude</th>
-
-                  <th>
-                    {isArabic
-                      ? 'آخر اتصال'
-                      : 'Last Seen'}
-                  </th>
                 </tr>
+
               </thead>
 
               <tbody>
-                {devices.map((device) => {
-                  const state = states.find(
-                    (item) =>
-                      item.deviceId ===
-                      device.imei,
-                  )
 
-                  const status =
-                    getDeviceStatus(
-                      device,
-                      state,
-                    )
+                {latestPositions.map((position, index) => (
 
-                  return (
-                    <tr
-                      key={device.imei}
-                      className={
-                        device.imei ===
-                        selectedImei
-                          ? 'selected-row'
-                          : ''
-                      }
-                      onClick={() =>
-                        setSelectedImei(
-                          device.imei,
-                        )
-                      }
-                    >
-                      <td>
-                        <div className="device-cell">
-                          <div
-                            className={`device-icon ${status}`}
-                          >
-                            {status ===
-                            'moving'
-                              ? '↗'
-                              : status ===
-                                  'idle'
-                                ? '◷'
-                                : '○'}
-                          </div>
+                  <tr
+                    key={`${position.deviceId}-${position.serverTime}-${index}`}
+                  >
 
-                          <div>
-                            <div className="device-name">
-                              {device.name ||
-                                device.imei}
-                            </div>
+                    <td className="mono device-id-cell">
 
-                            <div className="device-imei">
-                              {device.imei}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
+                      <span className="device-status-indicator" />
 
-                      <td>
-                        <span
-                          className={`status-pill ${status}`}
-                        >
-                          <span className="d" />
+                      {position.deviceId}
 
-                          {status ===
-                          'moving'
-                            ? isArabic
-                              ? 'تتحرك'
-                              : 'Moving'
-                            : status ===
-                                'idle'
-                              ? isArabic
-                                ? 'متوقفة'
-                                : 'Idle'
-                              : isArabic
-                                ? 'غير متصلة'
-                                : 'Offline'}
-                        </span>
-                      </td>
+                    </td>
 
-                      <td className="num">
-                        {(
-                          state?.speed ??
-                          device.lastSpeed ??
-                          0
-                        ).toFixed(0)}{' '}
+                    <td className="mono coordinates-cell">
+
+                      {position.latitude.toFixed(5)}
+
+                      <span>,</span>
+
+                      {position.longitude.toFixed(5)}
+
+                    </td>
+
+                    <td className="speed-cell">
+
+                      <strong>
+                        {position.speed}
+                      </strong>
+
+                      <span>
                         km/h
-                      </td>
+                      </span>
 
-                      <td className="num">
-                        {formatCoordinate(
-                          state?.latitude ??
-                            device.lastLatitude,
-                        )}
-                      </td>
+                    </td>
 
-                      <td className="num">
-                        {formatCoordinate(
-                          state?.longitude ??
-                            device.lastLongitude,
-                        )}
-                      </td>
+                    <td className="course-cell">
 
-                      <td className="num">
-                        {formatTime(
-                          device.lastSeen,
-                          language,
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })}
+                      <span
+                        style={{
+                          transform: `rotate(${position.course}deg)`,
+                        }}
+                      >
+                        ↑
+                      </span>
+
+                      {position.course}°
+
+                    </td>
+
+                    <td>
+
+                      <span
+                        className={`gps-badge ${
+                          position.valid
+                            ? 'valid'
+                            : 'invalid'
+                        }`}
+                      >
+
+                        <span />
+
+                        {position.valid
+                          ? isArabic
+                            ? 'صالح'
+                            : 'Valid'
+                          : isArabic
+                            ? 'بدون إشارة'
+                            : 'No Fix'}
+
+                      </span>
+
+                    </td>
+
+                    <td className="time-cell">
+
+                      {new Date(
+                        position.serverTime,
+                      ).toLocaleString(locale)}
+
+                    </td>
+
+                  </tr>
+
+                ))}
+
               </tbody>
+
             </table>
+
           </div>
         )}
-      </div>
 
-      <div className="system-footer">
-        <span>
-          {isArabic
-            ? 'Tracking Platform — البيانات الحقيقية من الخادم'
-            : 'Tracking Platform — Live data from server'}
-        </span>
+      </section>
 
-        <span>
-          {isArabic
-            ? 'آخر تحديث'
-            : 'Last refresh'}:{' '}
-          {lastRefresh
-            ? formatTime(
-                lastRefresh.toISOString(),
-                language,
-              )
-            : '—'}
-        </span>
-      </div>
-    </div>
+    </main>
   )
 }
+
+export default Dashboard
