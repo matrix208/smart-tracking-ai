@@ -1,0 +1,48 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Core/">
+    <Project Path="src/Core/Tracking.Application/Tracking.Application.csproj" />
+    <Project Path="src/Core/Tracking.Commands/Tracking.Commands.csproj" />
+    <Project Path="src/Core/Tracking.Configuration/Tracking.Configuration.csproj" />
+    <Project Path="src/Core/Tracking.Core/Tracking.Core.csproj" />
+    <Project Path="src/Core/Tracking.Events/Tracking.Events.csproj" />
+    <Project Path="src/Core/Tracking.Hosting/Tracking.Hosting.csproj" />
+    <Project Path="src/Core/Tracking.Logging/Tracking.Logging.csproj" />
+    <Project Path="src/Core/Tracking.Network/Tracking.Network.csproj" />
+    <Project Path="src/Core/Tracking.Package/Tracking.Package.csproj" />
+    <Project Path="src/Core/Tracking.Pipeline/Tracking.Pipeline.csproj" />
+    <Project Path="src/Core/Tracking.Plugin.Abstractions/Tracking.Plugin.Abstractions.csproj" />
+    <Project Path="src/Core/Tracking.Plugin.Runtime/Tracking.Plugin.Runtime.csproj" />
+    <Project Path="src/Core/Tracking.PluginLoader/Tracking.PluginLoader.csproj" />
+    <Project Path="src/Core/Tracking.PluginManager/Tracking.PluginManager.csproj" />
+    <Project Path="src/Core/Tracking.Protocol/Tracking.Protocol.csproj" />
+    <Project Path="src/Core/Tracking.SDK/Tracking.SDK.csproj" />
+    <Project Path="src/Core/Tracking.Security/Tracking.Security.csproj" />
+    <Project Path="src/Core/Tracking.Transport/Tracking.Transport.csproj" />
+  </Folder>
+  <Folder Name="/src/Infrastructure/">
+    <Project Path="src/Infrastructure/Tracking.Storage/Tracking.Storage.csproj" />
+  </Folder>
+  <Folder Name="/src/Packages/">
+    <Project Path="src/Packages/Tracking.PackageBuilder/Tracking.PackageBuilder.csproj" />
+    <Project Path="src/Packages/Tracking.PackageSigner/Tracking.PackageSigner.csproj" />
+    <Project Path="src/Packages/Tracking.PackageValidator/Tracking.PackageValidator.csproj" />
+  </Folder>
+  <Folder Name="/src/Plugins/">
+    <Project Path="src/Plugins/Tracking.Plugin.GT06/Tracking.Plugin.GT06.csproj" />
+  </Folder>
+  <Folder Name="/src/Server/">
+    <Project Path="src/Server/Tracking.API/Tracking.API.csproj" />
+    <Project Path="src/Server/Tracking.Console/Tracking.Console.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/">
+    <Project Path="src/Services/Tracking.Persistence/Tracking.Persistence.csproj" />
+    <Project Path="src/Services/Tracking.Runtime/Tracking.Runtime.csproj" />
+  </Folder>
+  <Folder Name="/src/Simulator/">
+    <Project Path="src/Simulator/Tracking.Simulator/Tracking.Simulator.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Gt06.TestClient/Gt06.TestClient.csproj" />
+  </Folder>
+</Solution>

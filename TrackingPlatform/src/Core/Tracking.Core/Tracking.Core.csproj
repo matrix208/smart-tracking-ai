@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Tracking.SDK\Tracking.SDK.csproj" />
+    <ProjectReference Include="..\Tracking.Network\Tracking.Network.csproj" />
+    <ProjectReference Include="..\..\Services\Tracking.Persistence\Tracking.Persistence.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

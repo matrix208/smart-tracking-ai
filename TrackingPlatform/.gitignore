@@ -1,0 +1,97 @@
+# .NET
+**/bin/
+**/obj/
+
+# Node
+**/node_modules/
+**/dist/
+
+# Local databases
+**/tracking.db
+**/tracking.db-shm
+**/tracking.db-wal
+
+# Local configuration / secrets
+**/appsettings.Local.json
+**/appsettings.*.Local.json
+**/*.save
+**/*.backup
+
+# IDE / OS
+.DS_Store
+.vs/
+.vscode/
+.idea/
+
+# Logs
+*.log# SQLite temporary files
+*.db-shm
+*.db-wal
+
+# SQLite databases (اختياري)
+# *.db# Build
+bin/
+obj/
+
+# Visual Studio
+.vs/
+.vscode/
+
+# Rider
+.idea/
+
+# User files
+*.user
+*.suo
+
+# macOS
+.DS_Store
+
+# Test
+TestResults/
+
+# Packages
+*.nupkg
+*.snupkg
+
+# Runtime packages
+runtime/packages/
+
+# Archives
+*.zip
+tracking.db
+
+# Dependencies / build output
+node_modules/
+dist/
+
+# SQLite runtime files
+*.db-shm
+*.db-wal
+
+# Local backups
+src-backup/
+*.backup
+*.theme-backup
+*.before-map
+*.before-theme
+*.save
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Local AI/editor folders
+.agent/
+.claude/
+.codebuddy/
+.codex/
+.continue/
+.cursor/
+.gemini/
+.kiro/
+.opencode/
+.qoder/
+.roo/
+.trae/
+.windsurf/

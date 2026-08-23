@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\Tracking.SDK\Tracking.SDK.csproj" />
+    <ProjectReference Include="..\..\Core\Tracking.PluginLoader\Tracking.PluginLoader.csproj" />
+    <ProjectReference Include="..\..\Core\Tracking.Network\Tracking.Network.csproj" />
+    <ProjectReference Include="..\..\Core\Tracking.Pipeline\Tracking.Pipeline.csproj" />
+    <ProjectReference Include="..\..\Core\Tracking.Core\Tracking.Core.csproj" />
+    
+    <ProjectReference Include="..\..\Core\Tracking.Commands\Tracking.Commands.csproj" />
+    <ProjectReference Include="..\..\Core\Tracking.PluginManager\Tracking.PluginManager.csproj" />
+        <ProjectReference Include="..\..\Services\Tracking.Persistence\Tracking.Persistence.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\Tracking.Storage\Tracking.Storage.csproj" />
+      </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.10" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
