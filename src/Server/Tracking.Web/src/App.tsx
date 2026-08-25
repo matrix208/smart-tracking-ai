@@ -1,35 +1,42 @@
 import { useEffect, useState } from 'react'
+
 import Dashboard from './pages/Dashboard'
 import LiveMap from './pages/LiveMap'
+import PluginManager from './pages/PluginManager'
+
 import './App.css'
 
 export type Language = 'ar' | 'en'
 
+type Page =
+  | 'dashboard'
+  | 'map'
+  | 'plugins'
 
 function App() {
-  const [page, setPage] = useState<'dashboard' | 'map'>('dashboard')
+  const [page, setPage] = useState<Page>('dashboard')
+
   const [language, setLanguage] = useState<Language>(() => {
     const saved = localStorage.getItem('tracking-language')
     return saved === 'en' ? 'en' : 'ar'
   })
 
-
-
-
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    return localStorage.getItem('tracking-theme') === 'dark'
+      ? 'dark'
+      : 'light'
+  })
 
   useEffect(() => {
     localStorage.setItem('tracking-language', language)
+
     document.documentElement.lang = language
-    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr'
-    document.body.dir = language === 'ar' ? 'rtl' : 'ltr'
+    document.documentElement.dir =
+      language === 'ar' ? 'rtl' : 'ltr'
+
+    document.body.dir =
+      language === 'ar' ? 'rtl' : 'ltr'
   }, [language])
-
-
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    return localStorage.getItem('tracking-theme') === 'light'
-      ? 'light'
-      : 'dark'
-  })
 
   useEffect(() => {
     localStorage.setItem('tracking-theme', theme)
@@ -38,155 +45,285 @@ function App() {
 
   const isArabic = language === 'ar'
 
+  const pageTitle =
+    page === 'dashboard'
+      ? isArabic
+        ? 'لوحة التحكم'
+        : 'Dashboard'
+      : page === 'map'
+        ? isArabic
+          ? 'الخريطة الحية'
+          : 'Live Map'
+        : isArabic
+          ? 'إدارة الإضافات'
+          : 'Plugin Manager'
+
   return (
-    <div className={`app-shell ${isArabic ? 'rtl' : 'ltr'}`}>
-      <aside className="sidebar">
-        <div className="brand">
-          <div className="brand-mark">T</div>
+    <div className={`smart-app ${isArabic ? 'rtl' : 'ltr'}`}>
+      {/* ================= TOP BAR ================= */}
 
-          <div>
-            <div className="brand-name">Tracking</div>
-            <div className="brand-sub">PLATFORM</div>
-          </div>
-        </div>
+      <header className="smart-topbar">
+        <div className="smart-topbar-left">
+          <div className="smart-logo">
+            <div className="smart-logo-text">
+              <span className="smart-logo-smart">
+                Smart
+              </span>
+              <span className="smart-logo-avl">
+                AVL
+              </span>
+            </div>
 
-        <nav className="nav">
-          <div className="nav-label">
-            {isArabic ? 'الرئيسية' : 'MAIN'}
-          </div>
-
-          <button
-            type="button"
-            className={page === 'dashboard' ? 'active' : ''}
-            onClick={() => setPage('dashboard')}
-          >
-            <span>▦</span>
-            {isArabic ? 'لوحة التحكم' : 'Dashboard'}
-          </button>
-
-          <button
-            type="button"
-            className={page === 'map' ? 'active' : ''}
-            onClick={() => setPage('map')}
-          >
-            <span>⌖</span>
-            {isArabic ? 'الخريطة الحية' : 'Live Map'}
-          </button>
-
-          <a href="#">
-            <span>▣</span>
-            {isArabic ? 'المركبات' : 'Vehicles'}
-          </a>
-
-          <a href="#">
-            <span>♙</span>
-            {isArabic ? 'السائقون' : 'Drivers'}
-          </a>
-
-          <div className="nav-label">
-            {isArabic ? 'المراقبة' : 'MONITOR'}
-          </div>
-
-          <a href="#">
-            <span>⚠</span>
-            {isArabic ? 'التنبيهات' : 'Alerts'}
-          </a>
-
-          <a href="#">
-            <span>⌁</span>
-            {isArabic ? 'التقارير' : 'Reports'}
-          </a>
-
-          <a href="#">
-            <span>◷</span>
-            {isArabic ? 'سجل الرحلات' : 'Trip History'}
-          </a>
-
-          <div className="nav-label">
-            {isArabic ? 'الإعدادات' : 'SETTINGS'}
-          </div>
-
-          <a href="#">
-            <span>⚙</span>
-            {isArabic ? 'الإعدادات' : 'Settings'}
-          </a>
-        </nav>
-
-        <div className="sidebar-bottom">
-          <div className="server-status">
-            <span className="status-dot online" />
-            <div>
-              <strong>GT06 Server</strong>
-              <small>Port 5001</small>
+            <div className="smart-logo-sub">
+              GPS System &amp; GIS Solution
             </div>
           </div>
 
+          <div className="smart-page-title">
+            {pageTitle}
+          </div>
+        </div>
+
+        <div className="smart-topbar-right">
           <button
             type="button"
-            className="theme-switch"
-            onClick={() =>
-              setTheme(theme === 'dark' ? 'light' : 'dark')
-            }
+            className="smart-icon-button"
             aria-label={
-              theme === 'dark'
-                ? 'تفعيل الوضع الفاتح'
-                : 'تفعيل الوضع الداكن'
+              isArabic ? 'الإشعارات' : 'Notifications'
             }
           >
-            <span className="theme-icon">
-              {theme === 'dark' ? '☀' : '☾'}
-            </span>
-            <span className="theme-label">
-              {theme === 'dark' ? 'الوضع الفاتح' : 'الوضع الداكن'}
-            </span>
-            <span className="theme-state">
-              {theme === 'dark' ? 'DARK' : 'LIGHT'}
-            </span>
+            🔔
           </button>
 
+          <div className="smart-avatar">
+            ط
+          </div>
+
+          <div className="smart-admin-name">
+            {isArabic
+              ? 'مدير النظام'
+              : 'System Admin'}
+          </div>
+
           <button
-            className="language-switch"
+            type="button"
+            className="smart-language-button"
             onClick={() =>
               setLanguage(isArabic ? 'en' : 'ar')
             }
-            aria-label={
-              isArabic
-                ? 'التبديل إلى الإنجليزية'
-                : 'Switch to Arabic'
-            }
           >
-            <span className="lang-current">
-              {isArabic ? 'عربي' : 'English'}
-            </span>
-            <span className="language-arrow">⇄</span>
-            <span className="lang-other">
-              {isArabic ? 'English' : 'عربي'}
-            </span>
+            {isArabic ? 'EN' : 'ع'}
           </button>
 
-          <div className="user-card">
-            <div className="avatar">ط</div>
-
-            <div>
-              <div className="user-name">
-                {isArabic ? 'مدير النظام' : 'System Admin'}
-              </div>
-
-              <div className="user-role">
-                {isArabic ? 'مدير الأسطول' : 'Fleet Manager'}
-              </div>
-            </div>
-          </div>
+          <button
+            type="button"
+            className="smart-theme-button"
+            onClick={() =>
+              setTheme(
+                theme === 'light' ? 'dark' : 'light',
+              )
+            }
+            aria-label={
+              theme === 'light'
+                ? 'Dark mode'
+                : 'Light mode'
+            }
+          >
+            {theme === 'light' ? '☾' : '☀'}
+          </button>
         </div>
-      </aside>
+      </header>
 
-      <main className="main">
-        {page === 'dashboard' ? (
-          <Dashboard language={language} />
-        ) : (
-          <LiveMap language={language} />
-        )}
-      </main>
+      {/* ================= LAYOUT ================= */}
+
+      <div className="smart-layout">
+        {/* ================= SIDEBAR ================= */}
+
+        <aside className="smart-sidebar">
+          <div className="smart-hamburger">
+            ☰
+          </div>
+
+          <nav className="smart-navigation">
+            <button
+              type="button"
+              className={
+                page === 'dashboard'
+                  ? 'smart-nav-item active'
+                  : 'smart-nav-item'
+              }
+              onClick={() => setPage('dashboard')}
+            >
+              <span className="smart-nav-label">
+                <span className="smart-nav-icon">
+                  📊
+                </span>
+                {isArabic
+                  ? 'لوحة التحكم'
+                  : 'Dashboard'}
+              </span>
+
+              <span className="smart-nav-plus">
+                +
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className={
+                page === 'map'
+                  ? 'smart-nav-item active'
+                  : 'smart-nav-item'
+              }
+              onClick={() => setPage('map')}
+            >
+              <span className="smart-nav-label">
+                <span className="smart-nav-icon">
+                  🗺
+                </span>
+                {isArabic
+                  ? 'الخريطة الحية'
+                  : 'Live Map'}
+              </span>
+
+              <span className="smart-nav-plus">
+                +
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className="smart-nav-item"
+            >
+              <span className="smart-nav-label">
+                <span className="smart-nav-icon">
+                  👥
+                </span>
+                {isArabic
+                  ? 'إدارة المستخدمين'
+                  : 'User Management'}
+              </span>
+
+              <span className="smart-nav-plus">
+                +
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className="smart-nav-item"
+            >
+              <span className="smart-nav-label">
+                <span className="smart-nav-icon">
+                  🛡️
+                </span>
+                {isArabic
+                  ? 'الصلاحيات'
+                  : 'Permissions'}
+              </span>
+
+              <span className="smart-nav-plus">
+                +
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className="smart-nav-item"
+            >
+              <span className="smart-nav-label">
+                <span className="smart-nav-icon">
+                  🚗
+                </span>
+                {isArabic
+                  ? 'المركبات'
+                  : 'Units'}
+              </span>
+
+              <span className="smart-nav-plus">
+                +
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className="smart-nav-item"
+            >
+              <span className="smart-nav-label">
+                <span className="smart-nav-icon">
+                  📈
+                </span>
+                {isArabic
+                  ? 'التقارير'
+                  : 'Reports'}
+              </span>
+
+              <span className="smart-nav-plus">
+                +
+              </span>
+            </button>
+
+            {/* PLUGIN MANAGER */}
+
+            <button
+              type="button"
+              className={
+                page === 'plugins'
+                  ? 'smart-nav-item active'
+                  : 'smart-nav-item'
+              }
+              onClick={() => setPage('plugins')}
+            >
+              <span className="smart-nav-label">
+                <span className="smart-nav-icon">
+                  🧩
+                </span>
+                {isArabic
+                  ? 'الإضافات'
+                  : 'Plugins'}
+              </span>
+
+              <span className="smart-nav-plus">
+                +
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className="smart-nav-item"
+            >
+              <span className="smart-nav-label">
+                <span className="smart-nav-icon">
+                  ⚙️
+                </span>
+                {isArabic
+                  ? 'الإعدادات'
+                  : 'Settings'}
+              </span>
+
+              <span className="smart-nav-plus">
+                +
+              </span>
+            </button>
+          </nav>
+        </aside>
+
+        {/* ================= MAIN ================= */}
+
+        <main className="smart-main">
+          {page === 'dashboard' && (
+            <Dashboard language={language} />
+          )}
+
+          {page === 'map' && (
+            <LiveMap language={language} />
+          )}
+
+          {page === 'plugins' && (
+            <PluginManager language={language} />
+          )}
+        </main>
+      </div>
     </div>
   )
 }

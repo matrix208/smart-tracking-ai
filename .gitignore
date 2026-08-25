@@ -69,3 +69,15 @@ __pycache__/
 .roo/
 .trae/
 .windsurf/
+
+# SQLite runtime files
+*.db-shm
+*.db-wal
+
+# Local SQLite database
+tracking.db
+
+# Backup files
+*.bak
+*.before-smartavl-dashboard
+*.before-smartavl-dashboard-2

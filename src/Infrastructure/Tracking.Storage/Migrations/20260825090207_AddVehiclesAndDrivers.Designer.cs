@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Tracking.Storage.Data;
 
@@ -10,9 +11,11 @@ using Tracking.Storage.Data;
 namespace Tracking.Storage.Migrations
 {
     [DbContext(typeof(TrackingDbContext))]
-    partial class TrackingDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260825090207_AddVehiclesAndDrivers")]
+    partial class AddVehiclesAndDrivers
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.10");
@@ -287,43 +290,6 @@ namespace Tracking.Storage.Migrations
                     b.ToTable("Drivers");
                 });
 
-            modelBuilder.Entity("Tracking.Storage.Entities.DriverVehicleAssignmentEntity", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("DriverId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("EndAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("StartAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("VehicleId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DriverId", "StartAt");
-
-                    b.HasIndex("VehicleId", "StartAt");
-
-                    b.ToTable("DriverVehicleAssignments");
-                });
-
             modelBuilder.Entity("Tracking.Storage.Entities.PeripheralTypeEntity", b =>
                 {
                     b.Property<long>("Id")
@@ -382,158 +348,6 @@ namespace Tracking.Storage.Migrations
                     b.HasIndex("DeviceId");
 
                     b.ToTable("Positions");
-                });
-
-            modelBuilder.Entity("Tracking.Storage.Entities.TaskEntity", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Address")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("TEXT");
-
-                    b.Property<double?>("Latitude")
-                        .HasColumnType("REAL");
-
-                    b.Property<double?>("Longitude")
-                        .HasColumnType("REAL");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("ScheduledAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Sequence")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("StartedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("TripId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ScheduledAt");
-
-                    b.HasIndex("Status");
-
-                    b.HasIndex("TripId", "Sequence");
-
-                    b.ToTable("Tasks");
-                });
-
-            modelBuilder.Entity("Tracking.Storage.Entities.TripEntity", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("ActualEndAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("ActualStartAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("DriverId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<long>("DriverVehicleAssignmentId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("EndLocation")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("ScheduledEndAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("ScheduledStartAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("StartLocation")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("TripNumber")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("VehicleId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DriverId");
-
-                    b.HasIndex("DriverVehicleAssignmentId");
-
-                    b.HasIndex("ScheduledStartAt");
-
-                    b.HasIndex("Status");
-
-                    b.HasIndex("TripNumber")
-                        .IsUnique();
-
-                    b.HasIndex("VehicleId");
-
-                    b.ToTable("Trips");
                 });
 
             modelBuilder.Entity("Tracking.Storage.Entities.UserEntity", b =>
@@ -660,25 +474,6 @@ namespace Tracking.Storage.Migrations
                     b.Navigation("PeripheralType");
                 });
 
-            modelBuilder.Entity("Tracking.Storage.Entities.DriverVehicleAssignmentEntity", b =>
-                {
-                    b.HasOne("Tracking.Storage.Entities.DriverEntity", "Driver")
-                        .WithMany()
-                        .HasForeignKey("DriverId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Tracking.Storage.Entities.VehicleEntity", "Vehicle")
-                        .WithMany()
-                        .HasForeignKey("VehicleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Driver");
-
-                    b.Navigation("Vehicle");
-                });
-
             modelBuilder.Entity("Tracking.Storage.Entities.PositionEntity", b =>
                 {
                     b.HasOne("Tracking.Storage.Entities.DeviceEntity", "Device")
@@ -689,44 +484,6 @@ namespace Tracking.Storage.Migrations
                         .IsRequired();
 
                     b.Navigation("Device");
-                });
-
-            modelBuilder.Entity("Tracking.Storage.Entities.TaskEntity", b =>
-                {
-                    b.HasOne("Tracking.Storage.Entities.TripEntity", "Trip")
-                        .WithMany("Tasks")
-                        .HasForeignKey("TripId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Trip");
-                });
-
-            modelBuilder.Entity("Tracking.Storage.Entities.TripEntity", b =>
-                {
-                    b.HasOne("Tracking.Storage.Entities.DriverEntity", "Driver")
-                        .WithMany()
-                        .HasForeignKey("DriverId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Tracking.Storage.Entities.DriverVehicleAssignmentEntity", "DriverVehicleAssignment")
-                        .WithMany()
-                        .HasForeignKey("DriverVehicleAssignmentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Tracking.Storage.Entities.VehicleEntity", "Vehicle")
-                        .WithMany()
-                        .HasForeignKey("VehicleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Driver");
-
-                    b.Navigation("DriverVehicleAssignment");
-
-                    b.Navigation("Vehicle");
                 });
 
             modelBuilder.Entity("Tracking.Storage.Entities.VehicleEntity", b =>
@@ -754,11 +511,6 @@ namespace Tracking.Storage.Migrations
             modelBuilder.Entity("Tracking.Storage.Entities.PeripheralTypeEntity", b =>
                 {
                     b.Navigation("Peripherals");
-                });
-
-            modelBuilder.Entity("Tracking.Storage.Entities.TripEntity", b =>
-                {
-                    b.Navigation("Tasks");
                 });
 #pragma warning restore 612, 618
         }

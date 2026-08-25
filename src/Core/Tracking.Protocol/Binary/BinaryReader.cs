@@ -326,7 +326,7 @@ public (ushort Course, bool GpsFix, bool West, bool South)
     ushort course = (ushort)(value & 0x03FF);
 
     // GT06 bit 10: GPS valid status
-    bool gpsFix = (value & 0x0400) == 0;
+    bool gpsFix = (value & 0x0400) != 0;
 
     // bit 11: longitude direction
     bool west = (value & 0x0800) != 0;

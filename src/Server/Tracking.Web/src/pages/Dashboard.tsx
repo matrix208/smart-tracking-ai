@@ -1,20 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 
-import { getDevices, getPositions, type Device } from '../api/trackingApi'
-import { DeviceTable } from '../components/DeviceTable'
-import { StatCard } from '../components/StatCard'
-import type { Language } from '../App'
+import {
+  getDevices,
+  getPositions,
+  type Device,
+  type Position,
+} from '../api/trackingApi'
 
-type Position = {
-  deviceId: string
-  latitude: number
-  longitude: number
-  speed: number
-  course: number
-  valid: boolean
-  deviceTime: string
-  serverTime: string
-}
+import type { Language } from '../App'
 
 interface DashboardProps {
   language: Language
@@ -22,11 +15,15 @@ interface DashboardProps {
 
 function Dashboard({ language }: DashboardProps) {
   const isArabic = language === 'ar'
+  const locale = isArabic ? 'ar-SA' : 'en-US'
 
   const [devices, setDevices] = useState<Device[]>([])
   const [positions, setPositions] = useState<Position[]>([])
   const [loading, setLoading] = useState(true)
   const [lastUpdate, setLastUpdate] = useState(new Date())
+  const [activeTab, setActiveTab] = useState<'overview' | 'vehicles'>(
+    'overview',
+  )
 
   const loadData = async () => {
     try {
@@ -81,46 +78,40 @@ function Dashboard({ language }: DashboardProps) {
     }
   }, [devices])
 
-  const latestPositions = positions.slice(0, 8)
+  const latestPositions = positions.slice(0, 6)
 
-  const systemItems = [
-    {
-      code: 'API',
-      title: 'Tracking API',
-      subtitle: isArabic ? 'الخدمة الأساسية' : 'Core service',
-      status: isArabic ? 'متصل' : 'Online',
-    },
-    {
-      code: 'TCP',
-      title: 'GT06 Server',
-      subtitle: 'Port 5001',
-      status: isArabic ? 'متصل' : 'Online',
-    },
-    {
-      code: 'DB',
-      title: 'Database',
-      subtitle: 'SQLite',
-      status: isArabic ? 'متصل' : 'Online',
-    },
-    {
-      code: 'PLG',
-      title: 'GT06 Plugin',
-      subtitle: isArabic ? 'البروتوكول محمّل' : 'Protocol loaded',
-      status: isArabic ? 'نشط' : 'Active',
-    },
-  ]
+  const formatDate = (value?: string | null) => {
+    if (!value) return '—'
 
-  const locale = isArabic ? 'ar-SA' : 'en-US'
+    const date = new Date(value)
+
+    if (Number.isNaN(date.getTime())) return '—'
+
+    return date.toLocaleString(locale)
+  }
+
+  const formatTime = (value?: string | null) => {
+    if (!value) return '—'
+
+    const date = new Date(value)
+
+    if (Number.isNaN(date.getTime())) return '—'
+
+    return date.toLocaleTimeString(locale)
+  }
 
   return (
-    <main className="dashboard-page">
+    <div className="smart-dashboard">
+      {/* ================= PAGE HEADER ================= */}
 
-      <section className="dashboard-hero">
-        <div className="dashboard-hero-content">
-
-          <div className="dashboard-hero-kicker">
-            <span className="hero-live-dot" />
-            TRACKING PLATFORM
+      <header className="smart-page-header">
+        <div>
+          <div className="smart-breadcrumb">
+            <span>TRACKING PLATFORM</span>
+            <span>/</span>
+            <strong>
+              {isArabic ? 'لوحة التحكم' : 'Dashboard'}
+            </strong>
           </div>
 
           <h1>
@@ -129,585 +120,649 @@ function Dashboard({ language }: DashboardProps) {
 
           <p>
             {isArabic
-              ? 'مركز المراقبة الرئيسي لأسطولك — تابع المركبات والاتصالات وبيانات التتبع لحظة بلحظة.'
-              : 'Your fleet command center — monitor vehicles, connections and tracking data in real time.'}
+              ? 'مراقبة الأسطول وحالة الأجهزة وبيانات التتبع في الوقت الحقيقي.'
+              : 'Monitor your fleet, devices and tracking data in real time.'}
           </p>
-
-          <div className="hero-meta">
-
-            <span className="hero-meta-item">
-              <span className="meta-dot green" />
-
-              {isArabic
-                ? 'النظام يعمل'
-                : 'System operational'}
-            </span>
-
-            <span className="hero-divider" />
-
-            <span className="hero-meta-item mono">
-              {isArabic ? 'آخر تحديث ' : 'Last update '}
-
-              {lastUpdate.toLocaleTimeString(locale)}
-            </span>
-
-          </div>
         </div>
 
-        <div className="hero-orbit">
+        <div className="smart-header-actions">
+          <div className="smart-server-indicator">
+            <span />
+            <div>
+              <strong>GT06 Server</strong>
+              <small>Port 5001</small>
+            </div>
+          </div>
 
-          <div className="orbit orbit-one" />
-          <div className="orbit orbit-two" />
-          <div className="orbit orbit-three" />
+          <button
+            type="button"
+            className="smart-refresh-button"
+            onClick={loadData}
+            disabled={loading}
+          >
+            <span className={loading ? 'smart-refresh-spin' : ''}>
+              ↻
+            </span>
 
-          <div className="orbit-core">
-            <span>GPS</span>
-            <strong>{stats.online}</strong>
+            {loading
+              ? isArabic
+                ? 'جاري التحديث'
+                : 'Refreshing'
+              : isArabic
+                ? 'تحديث'
+                : 'Refresh'}
+          </button>
+        </div>
+      </header>
+
+      {/* ================= STATS ================= */}
+
+      <section className="smart-dashboard-stats">
+        <article className="smart-stat">
+          <div className="smart-stat-icon total">
+            🚗
+          </div>
+
+          <div>
+            <span>
+              {isArabic ? 'إجمالي المركبات' : 'Total Vehicles'}
+            </span>
+
+            <strong>{stats.total}</strong>
+
             <small>
-              {isArabic ? 'متصل' : 'ONLINE'}
+              {isArabic
+                ? 'جميع المركبات المسجلة'
+                : 'All registered vehicles'}
             </small>
           </div>
+        </article>
 
-          {devices.slice(0, 6).map((device, index) => (
-            <span
-              key={device.id ?? device.imei ?? index}
-              className={`orbit-point orbit-point-${index + 1} ${
-                device.isOnline ? 'online' : 'offline'
-              }`}
-              title={device.imei}
-            />
-          ))}
+        <article className="smart-stat">
+          <div className="smart-stat-icon online">
+            ●
+          </div>
 
-        </div>
+          <div>
+            <span>
+              {isArabic ? 'متصلة الآن' : 'Online Now'}
+            </span>
+
+            <strong>{stats.online}</strong>
+
+            <small>
+              {isArabic
+                ? 'متصلة بالخادم'
+                : 'Currently connected'}
+            </small>
+          </div>
+        </article>
+
+        <article className="smart-stat">
+          <div className="smart-stat-icon moving">
+            ↗
+          </div>
+
+          <div>
+            <span>
+              {isArabic ? 'تتحرك' : 'Moving'}
+            </span>
+
+            <strong>{stats.moving}</strong>
+
+            <small>
+              {isArabic
+                ? 'مركبات قيد الحركة'
+                : 'Vehicles in motion'}
+            </small>
+          </div>
+        </article>
+
+        <article className="smart-stat">
+          <div className="smart-stat-icon stopped">
+            Ⅱ
+          </div>
+
+          <div>
+            <span>
+              {isArabic ? 'متوقفة' : 'Stopped'}
+            </span>
+
+            <strong>{stats.stopped}</strong>
+
+            <small>
+              {isArabic
+                ? 'متصلة ولكن متوقفة'
+                : 'Connected but stopped'}
+            </small>
+          </div>
+        </article>
+
+        <article className="smart-stat">
+          <div className="smart-stat-icon offline">
+            ○
+          </div>
+
+          <div>
+            <span>
+              {isArabic ? 'غير متصلة' : 'Offline'}
+            </span>
+
+            <strong>{stats.offline}</strong>
+
+            <small>
+              {isArabic
+                ? 'لا يوجد اتصال حالي'
+                : 'No current connection'}
+            </small>
+          </div>
+        </article>
       </section>
 
-      <section className="stats-grid dashboard-stats">
+      {/* ================= TABS ================= */}
 
-        <StatCard
-          title={isArabic ? 'إجمالي المركبات' : 'Total Vehicles'}
-          value={stats.total}
-          icon="🚘"
-          subtitle={
-            isArabic
-              ? 'جميع المركبات المسجلة'
-              : 'All registered vehicles'
-          }
-        />
+      <div className="smart-dashboard-tabs">
+        <button
+          type="button"
+          className={activeTab === 'overview' ? 'active' : ''}
+          onClick={() => setActiveTab('overview')}
+        >
+          {isArabic ? 'نظرة عامة' : 'Overview'}
+        </button>
 
-        <StatCard
-          title={isArabic ? 'متصلة الآن' : 'Online Now'}
-          value={stats.online}
-          icon="●"
-          subtitle={
-            isArabic
-              ? 'متصلة بالخادم الآن'
-              : 'Currently connected'
-          }
-        />
+        <button
+          type="button"
+          className={activeTab === 'vehicles' ? 'active' : ''}
+          onClick={() => setActiveTab('vehicles')}
+        >
+          {isArabic ? 'المركبات' : 'Vehicles'}
+        </button>
 
-        <StatCard
-          title={isArabic ? 'تتحرك' : 'Moving'}
-          value={stats.moving}
-          icon="↗"
-          subtitle={
-            isArabic
-              ? 'مركبات قيد الحركة'
-              : 'Vehicles in motion'
-          }
-        />
+        <span className="smart-last-update">
+          {isArabic ? 'آخر تحديث: ' : 'Last update: '}
+          {lastUpdate.toLocaleTimeString(locale)}
+        </span>
+      </div>
 
-        <StatCard
-          title={isArabic ? 'متوقفة' : 'Stopped'}
-          value={stats.stopped}
-          icon="Ⅱ"
-          subtitle={
-            isArabic
-              ? 'متصلة ولكن متوقفة'
-              : 'Connected but stopped'
-          }
-        />
+      {/* ================= OVERVIEW ================= */}
 
-        <StatCard
-          title={isArabic ? 'غير متصلة' : 'Offline'}
-          value={stats.offline}
-          icon="○"
-          subtitle={
-            isArabic
-              ? 'لا يوجد اتصال حالي'
-              : 'No current connection'
-          }
-        />
+      {activeTab === 'overview' && (
+        <>
+          <section className="smart-dashboard-grid">
+            {/* Fleet */}
 
-      </section>
+            <article className="smart-panel">
+              <div className="smart-panel-header">
+                <div>
+                  <span>FLEET STATUS</span>
 
-      <section className="dashboard-grid dashboard-main-grid">
+                  <h2>
+                    {isArabic
+                      ? 'حالة الأسطول'
+                      : 'Fleet Status'}
+                  </h2>
+                </div>
 
-        <article className="dashboard-card fleet-overview-card">
+                <span className="smart-live-badge">
+                  <i />
+                  {isArabic ? 'مباشر' : 'LIVE'}
+                </span>
+              </div>
 
-          <div className="card-heading">
+              <div className="smart-fleet-content">
+                <div
+                  className="smart-fleet-circle"
+                  style={{
+                    '--fleet-progress':
+                      stats.total > 0
+                        ? `${(stats.online / stats.total) * 100}%`
+                        : '0%',
+                  } as React.CSSProperties}
+                >
+                  <div>
+                    <strong>{stats.online}</strong>
 
+                    <span>
+                      {isArabic ? 'متصلة' : 'ONLINE'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="smart-status-list">
+                  <div>
+                    <span className="green" />
+                    <label>
+                      {isArabic ? 'متصلة' : 'Online'}
+                    </label>
+                    <strong>{stats.online}</strong>
+                  </div>
+
+                  <div>
+                    <span className="blue" />
+                    <label>
+                      {isArabic ? 'تتحرك' : 'Moving'}
+                    </label>
+                    <strong>{stats.moving}</strong>
+                  </div>
+
+                  <div>
+                    <span className="orange" />
+                    <label>
+                      {isArabic ? 'متوقفة' : 'Stopped'}
+                    </label>
+                    <strong>{stats.stopped}</strong>
+                  </div>
+
+                  <div>
+                    <span className="gray" />
+                    <label>
+                      {isArabic ? 'غير متصلة' : 'Offline'}
+                    </label>
+                    <strong>{stats.offline}</strong>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            {/* System */}
+
+            <article className="smart-panel">
+              <div className="smart-panel-header">
+                <div>
+                  <span>SYSTEM</span>
+
+                  <h2>
+                    {isArabic
+                      ? 'حالة النظام'
+                      : 'System Status'}
+                  </h2>
+                </div>
+
+                <span className="smart-system-ok">
+                  ● {isArabic ? 'يعمل' : 'Operational'}
+                </span>
+              </div>
+
+              <div className="smart-system-list">
+                <div>
+                  <b>API</b>
+
+                  <section>
+                    <strong>Tracking API</strong>
+                    <small>
+                      {isArabic
+                        ? 'الخدمة الأساسية'
+                        : 'Core service'}
+                    </small>
+                  </section>
+
+                  <em>
+                    ● {isArabic ? 'متصل' : 'Online'}
+                  </em>
+                </div>
+
+                <div>
+                  <b>TCP</b>
+
+                  <section>
+                    <strong>GT06 Server</strong>
+                    <small>Port 5001</small>
+                  </section>
+
+                  <em>
+                    ● {isArabic ? 'متصل' : 'Online'}
+                  </em>
+                </div>
+
+                <div>
+                  <b>DB</b>
+
+                  <section>
+                    <strong>Database</strong>
+                    <small>SQLite</small>
+                  </section>
+
+                  <em>
+                    ● {isArabic ? 'متصل' : 'Online'}
+                  </em>
+                </div>
+
+                <div>
+                  <b>PLG</b>
+
+                  <section>
+                    <strong>GT06 Plugin</strong>
+                    <small>
+                      {isArabic
+                        ? 'البروتوكول محمّل'
+                        : 'Protocol loaded'}
+                    </small>
+                  </section>
+
+                  <em>
+                    ● {isArabic ? 'نشط' : 'Active'}
+                  </em>
+                </div>
+              </div>
+            </article>
+          </section>
+        </>
+      )}
+
+      {/* ================= VEHICLES ================= */}
+
+      {activeTab === 'vehicles' && (
+        <section className="smart-panel smart-vehicles-panel">
+          <div className="smart-panel-header">
             <div>
-              <span className="card-kicker">
-                FLEET OVERVIEW
-              </span>
+              <span>VEHICLES</span>
+
+              <h2>
+                {isArabic ? 'المركبات' : 'Vehicles'}
+              </h2>
+            </div>
+
+            <span className="smart-count">
+              {devices.length}
+            </span>
+          </div>
+
+          <VehicleTable
+            devices={devices}
+            language={language}
+            loading={loading}
+            formatDate={formatDate}
+          />
+        </section>
+      )}
+
+      {/* ================= VEHICLE OVERVIEW ================= */}
+
+      {activeTab === 'overview' && (
+        <section className="smart-panel smart-vehicles-panel">
+          <div className="smart-panel-header">
+            <div>
+              <span>VEHICLES</span>
 
               <h2>
                 {isArabic
-                  ? 'نظرة عامة على الأسطول'
-                  : 'Fleet Overview'}
+                  ? 'المركبات'
+                  : 'Vehicles'}
               </h2>
             </div>
 
             <button
               type="button"
-              className="refresh-button"
-              onClick={loadData}
-              disabled={loading}
+              className="smart-link-button"
+              onClick={() => setActiveTab('vehicles')}
             >
-              <span className={loading ? 'refresh-spin' : ''}>
-                ↻
-              </span>
-
-              {loading
-                ? isArabic
-                  ? 'جاري التحديث'
-                  : 'Refreshing'
-                : isArabic
-                  ? 'تحديث البيانات'
-                  : 'Refresh data'}
+              {isArabic
+                ? 'عرض الكل'
+                : 'View all'}
+              →
             </button>
-
           </div>
 
-          <div className="fleet-overview">
-
-            <div className="fleet-chart">
-
-              <div className="chart-grid-line line-1" />
-              <div className="chart-grid-line line-2" />
-              <div className="chart-grid-line line-3" />
-
-              <div className="chart-ring ring-large" />
-              <div className="chart-ring ring-small" />
-
-              <div className="chart-center">
-                <span>ACTIVE</span>
-
-                <strong>{stats.online}</strong>
-
-                <small>
-                  {isArabic
-                    ? 'مركبة متصلة'
-                    : 'connected vehicles'}
-                </small>
-              </div>
-
-              <div className="chart-scan" />
-
-            </div>
-
-            <div className="fleet-breakdown">
-
-              <div className="breakdown-title">
-                <span>
-                  {isArabic
-                    ? 'حالة المركبات'
-                    : 'Vehicle Status'}
-                </span>
-
-                <strong>{stats.total}</strong>
-              </div>
-
-              <div className="breakdown-item">
-
-                <div className="breakdown-label">
-                  <span className="legend-dot green" />
-
-                  <span>
-                    {isArabic ? 'متحركة' : 'Moving'}
-                  </span>
-                </div>
-
-                <strong>{stats.moving}</strong>
-
-              </div>
-
-              <div className="breakdown-item">
-
-                <div className="breakdown-label">
-                  <span className="legend-dot amber" />
-
-                  <span>
-                    {isArabic ? 'متوقفة' : 'Stopped'}
-                  </span>
-                </div>
-
-                <strong>{stats.stopped}</strong>
-
-              </div>
-
-              <div className="breakdown-item">
-
-                <div className="breakdown-label">
-                  <span className="legend-dot red" />
-
-                  <span>
-                    {isArabic ? 'غير متصلة' : 'Offline'}
-                  </span>
-                </div>
-
-                <strong>{stats.offline}</strong>
-
-              </div>
-
-              <div className="fleet-progress">
-
-                <div
-                  className="fleet-progress-fill"
-                  style={{
-                    width:
-                      stats.total > 0
-                        ? `${Math.round(
-                            (stats.online / stats.total) * 100,
-                          )}%`
-                        : '0%',
-                  }}
-                />
-
-              </div>
-
-              <small className="fleet-progress-label">
-
-                {stats.total > 0
-                  ? Math.round(
-                      (stats.online / stats.total) * 100,
-                    )
-                  : 0}
-                %{' '}
-                {isArabic
-                  ? 'من الأسطول متصل'
-                  : 'of fleet connected'}
-
-              </small>
-
-            </div>
-          </div>
-        </article>
-
-        <article className="dashboard-card system-health-card">
-
-          <div className="card-heading">
-
-            <div>
-
-              <span className="card-kicker">
-                SYSTEM HEALTH
-              </span>
-
-              <h2>
-                {isArabic
-                  ? 'صحة النظام'
-                  : 'System Health'}
-              </h2>
-
-            </div>
-
-            <span className="system-health-badge">
-
-              <span className="status-dot online" />
-
-              {isArabic ? 'سليم' : 'Healthy'}
-
-            </span>
-
-          </div>
-
-          <div className="health-list">
-
-            {systemItems.map((item) => (
-              <div className="health-item" key={item.code}>
-
-                <span className="health-icon">
-                  {item.code}
-                </span>
-
-                <div className="health-info">
-
-                  <strong>{item.title}</strong>
-                  <span>{item.subtitle}</span>
-
-                </div>
-
-                <b className="health-ok">
-
-                  <span />
-
-                  {item.status}
-
-                </b>
-
-              </div>
-            ))}
-
-          </div>
-
-          <div className="system-footer">
-
-            <span>
-              {isArabic
-                ? 'جميع الخدمات الأساسية تعمل بشكل طبيعي'
-                : 'All core services are operating normally'}
-            </span>
-
-            <span className="mono">
-              100%
-            </span>
-
-          </div>
-
-        </article>
-
-      </section>
-
-      <section className="dashboard-card devices-section">
-
-        <div className="card-heading">
-
+          <VehicleTable
+            devices={devices.slice(0, 5)}
+            language={language}
+            loading={loading}
+            formatDate={formatDate}
+          />
+        </section>
+      )}
+
+      {/* ================= LIVE POSITIONS ================= */}
+
+      <section className="smart-panel">
+        <div className="smart-panel-header">
           <div>
-
-            <span className="card-kicker">
-              VEHICLES
-            </span>
-
-            <h2>
-              {isArabic ? 'المركبات' : 'Vehicles'}
-            </h2>
-
-            <p className="card-description">
-
-              {isArabic
-                ? 'قائمة المركبات المسجلة وحالتها الحالية.'
-                : 'Registered vehicles and their current status.'}
-
-            </p>
-
-          </div>
-
-          <div className="record-count">
-            <strong>{devices.length}</strong>
-
-            <span>
-              {isArabic ? 'مركبة' : 'vehicles'}
-            </span>
-          </div>
-
-        </div>
-
-        <DeviceTable
-          devices={devices}
-          language={language}
-        />
-
-      </section>
-
-      <section className="dashboard-card positions-section">
-
-        <div className="card-heading">
-
-          <div>
-
-            <span className="card-kicker">
-              LATEST TELEMETRY
-            </span>
+            <span>LIVE TELEMETRY</span>
 
             <h2>
               {isArabic
-                ? 'آخر بيانات التتبع'
-                : 'Latest Telemetry'}
+                ? 'آخر المواقع'
+                : 'Latest Positions'}
             </h2>
-
-            <p className="card-description">
-
-              {isArabic
-                ? 'أحدث المواقع والبيانات المستلمة من أجهزة التتبع.'
-                : 'Latest locations and data received from tracking devices.'}
-
-            </p>
-
           </div>
 
-          <div className="telemetry-live">
-
-            <span className="status-dot online" />
-
-            LIVE
-
-          </div>
-
+          <span className="smart-last-update">
+            {isArabic ? 'تحديث تلقائي كل 15 ثانية' : 'Auto refresh every 15 seconds'}
+          </span>
         </div>
 
-        {latestPositions.length === 0 ? (
+        {latestPositions.length > 0 ? (
+          <div className="smart-position-grid">
+            {latestPositions.map((position, index) => (
+              <article
+                className="smart-position-card"
+                key={`${position.deviceId}-${position.serverTime}-${index}`}
+              >
+                <div className="smart-position-top">
+                  <div className="smart-position-device">
+                    <span>GPS</span>
 
-          <div className="empty-state">
+                    <strong>{position.deviceId}</strong>
+                  </div>
 
-            <div className="empty-icon">
-              ⌁
-            </div>
-
-            <strong>
-              {isArabic
-                ? 'لا توجد بيانات تتبع حديثة'
-                : 'No recent tracking data'}
-            </strong>
-
-            <span>
-              {isArabic
-                ? 'ستظهر بيانات الأجهزة هنا عند وصولها.'
-                : 'Device data will appear here when received.'}
-            </span>
-
-          </div>
-
-        ) : (
-
-          <div className="telemetry-table-wrapper">
-
-            <table className="telemetry-table">
-
-              <thead>
-
-                <tr>
-
-                  <th>
-                    {isArabic ? 'الجهاز' : 'Device'}
-                  </th>
-
-                  <th>
-                    {isArabic
-                      ? 'الإحداثيات'
-                      : 'Coordinates'}
-                  </th>
-
-                  <th>
-                    {isArabic ? 'السرعة' : 'Speed'}
-                  </th>
-
-                  <th>
-                    {isArabic ? 'الاتجاه' : 'Course'}
-                  </th>
-
-                  <th>
-                    GPS
-                  </th>
-
-                  <th>
-                    {isArabic
-                      ? 'وقت الخادم'
-                      : 'Server Time'}
-                  </th>
-
-                </tr>
-
-              </thead>
-
-              <tbody>
-
-                {latestPositions.map((position, index) => (
-
-                  <tr
-                    key={`${position.deviceId}-${position.serverTime}-${index}`}
+                  <span
+                    className={
+                      position.valid
+                        ? 'smart-position-valid'
+                        : 'smart-position-invalid'
+                    }
                   >
+                    {position.valid
+                      ? isArabic
+                        ? 'صالح'
+                        : 'VALID'
+                      : isArabic
+                        ? 'غير صالح'
+                        : 'INVALID'}
+                  </span>
+                </div>
 
-                    <td className="mono device-id-cell">
+                <div className="smart-position-coordinates">
+                  {position.latitude.toFixed(5)}
+                  <span>,</span>
+                  {position.longitude.toFixed(5)}
+                </div>
 
-                      <span className="device-status-indicator" />
+                <div className="smart-position-meta">
+                  <span>
+                    <small>
+                      {isArabic ? 'السرعة' : 'Speed'}
+                    </small>
+                    <strong>
+                      {position.speed} km/h
+                    </strong>
+                  </span>
 
-                      {position.deviceId}
-
-                    </td>
-
-                    <td className="mono coordinates-cell">
-
-                      {position.latitude.toFixed(5)}
-
-                      <span>,</span>
-
-                      {position.longitude.toFixed(5)}
-
-                    </td>
-
-                    <td className="speed-cell">
-
-                      <strong>
-                        {position.speed}
-                      </strong>
-
-                      <span>
-                        km/h
-                      </span>
-
-                    </td>
-
-                    <td className="course-cell">
-
-                      <span
-                        style={{
-                          transform: `rotate(${position.course}deg)`,
-                        }}
-                      >
-                        ↑
-                      </span>
-
+                  <span>
+                    <small>
+                      {isArabic ? 'الاتجاه' : 'Course'}
+                    </small>
+                    <strong>
                       {position.course}°
+                    </strong>
+                  </span>
 
-                    </td>
-
-                    <td>
-
-                      <span
-                        className={`gps-badge ${
-                          position.valid
-                            ? 'valid'
-                            : 'invalid'
-                        }`}
-                      >
-
-                        <span />
-
-                        {position.valid
-                          ? isArabic
-                            ? 'صالح'
-                            : 'Valid'
-                          : isArabic
-                            ? 'بدون إشارة'
-                            : 'No Fix'}
-
-                      </span>
-
-                    </td>
-
-                    <td className="time-cell">
-
-                      {new Date(
-                        position.serverTime,
-                      ).toLocaleString(locale)}
-
-                    </td>
-
-                  </tr>
-
-                ))}
-
-              </tbody>
-
-            </table>
-
+                  <span>
+                    <small>
+                      {isArabic ? 'الوقت' : 'Time'}
+                    </small>
+                    <strong>
+                      {formatTime(position.serverTime)}
+                    </strong>
+                  </span>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="smart-empty">
+            {loading
+              ? isArabic
+                ? 'جاري تحميل بيانات المواقع...'
+                : 'Loading position data...'
+              : isArabic
+                ? 'لا توجد بيانات مواقع'
+                : 'No position data available'}
           </div>
         )}
-
       </section>
 
-    </main>
+      {/* ================= FOOTER ================= */}
+
+      <footer className="smart-dashboard-footer">
+        <span>
+          © 2026 Tracking Platform
+        </span>
+
+        <span>
+          {isArabic
+            ? 'نظام تتبع وإدارة الأسطول'
+            : 'Fleet tracking and management system'}
+        </span>
+
+        <span>
+          {isArabic ? 'وقت الخادم' : 'Server time'}:{' '}
+          {lastUpdate.toLocaleString(locale)}
+        </span>
+      </footer>
+    </div>
+  )
+}
+
+interface VehicleTableProps {
+  devices: Device[]
+  language: Language
+  loading: boolean
+  formatDate: (value?: string | null) => string
+}
+
+function VehicleTable({
+  devices,
+  language,
+  loading,
+  formatDate,
+}: VehicleTableProps) {
+  const isArabic = language === 'ar'
+
+  return (
+    <div className="smart-table-wrapper">
+      <table className="smart-table">
+        <thead>
+          <tr>
+            <th>
+              {isArabic ? 'المركبة' : 'Vehicle'}
+            </th>
+
+            <th>IMEI</th>
+
+            <th>
+              {isArabic ? 'الحالة' : 'Status'}
+            </th>
+
+            <th>
+              {isArabic ? 'السرعة' : 'Speed'}
+            </th>
+
+            <th>
+              {isArabic ? 'الموقع' : 'Location'}
+            </th>
+
+            <th>
+              {isArabic ? 'آخر تحديث' : 'Last Update'}
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {devices.map((device) => (
+            <tr key={device.id ?? device.imei}>
+              <td>
+                <div className="smart-vehicle-name">
+                  <span
+                    className={
+                      device.isOnline
+                        ? 'smart-vehicle-dot online'
+                        : 'smart-vehicle-dot'
+                    }
+                  />
+
+                  <div>
+                    <strong>
+                      {device.name || device.imei}
+                    </strong>
+
+                    <small>
+                      {device.protocol?.toUpperCase() || 'GT06'}
+                    </small>
+                  </div>
+                </div>
+              </td>
+
+              <td className="smart-mono">
+                {device.imei}
+              </td>
+
+              <td>
+                <span
+                  className={
+                    device.isOnline
+                      ? 'smart-status-badge online'
+                      : 'smart-status-badge offline'
+                  }
+                >
+                  {device.isOnline
+                    ? isArabic
+                      ? 'متصل'
+                      : 'Online'
+                    : isArabic
+                      ? 'غير متصل'
+                      : 'Offline'}
+                </span>
+              </td>
+
+              <td>
+                <strong className="smart-speed">
+                  {device.lastSpeed ?? 0}
+                  <small> km/h</small>
+                </strong>
+              </td>
+
+              <td className="smart-mono">
+                {device.lastLatitude != null &&
+                device.lastLongitude != null
+                  ? `${device.lastLatitude.toFixed(4)}, ${device.lastLongitude.toFixed(4)}`
+                  : '—'}
+              </td>
+
+              <td className="smart-date">
+                {formatDate(device.lastSeen)}
+              </td>
+            </tr>
+          ))}
+
+          {devices.length === 0 && (
+            <tr>
+              <td colSpan={6}>
+                <div className="smart-empty">
+                  {loading
+                    ? isArabic
+                      ? 'جاري تحميل البيانات...'
+                      : 'Loading data...'
+                    : isArabic
+                      ? 'لا توجد مركبات'
+                      : 'No vehicles found'}
+                </div>
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
   )
 }
 

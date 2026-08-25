@@ -20,19 +20,22 @@ public sealed class TrackingRuntimeHostedService : BackgroundService
     private readonly DeviceChannel _deviceChannel;
     private readonly AlarmChannel _alarmChannel;
     private readonly DeviceStateService _deviceStateService;
+    private readonly DeviceRegistry _deviceRegistry;
 
     public TrackingRuntimeHostedService(
         ILogger<TrackingRuntimeHostedService> logger,
         PositionChannel positionChannel,
         DeviceChannel deviceChannel,
         AlarmChannel alarmChannel,
-        DeviceStateService deviceStateService)
+        DeviceStateService deviceStateService,
+        DeviceRegistry deviceRegistry)
     {
         _logger = logger;
         _positionChannel = positionChannel;
         _deviceChannel = deviceChannel;
         _alarmChannel = alarmChannel;
         _deviceStateService = deviceStateService;
+        _deviceRegistry = deviceRegistry;
     }
 
     protected override async Task ExecuteAsync(
@@ -48,14 +51,16 @@ public sealed class TrackingRuntimeHostedService : BackgroundService
         var loader =
             new Tracking.PluginLoader.Services.PluginLoader();
 
-        var basePath =
-            Directory.GetCurrentDirectory();
-
         var pluginPath =
-            Path.GetFullPath(
-                Path.Combine(
-                    basePath,
-                    "../../Plugins"));
+            "/Users/mac/TrackingPlatform/src/Plugins";
+
+        _logger.LogInformation(
+            "Plugin directory: {PluginPath}",
+            pluginPath);
+
+        _logger.LogInformation(
+            "Plugin directory exists: {Exists}",
+            Directory.Exists(pluginPath));
 
         var plugins =
             await loader.LoadAsync(
@@ -94,8 +99,6 @@ public sealed class TrackingRuntimeHostedService : BackgroundService
         // Device Manager
         // =====================================================
 
-        var deviceRegistry =
-            new DeviceRegistry();
 
         var deviceManagerLogger =
             LoggerFactory
@@ -105,7 +108,7 @@ public sealed class TrackingRuntimeHostedService : BackgroundService
         var deviceManager =
             new DeviceManager(
                 deviceManagerLogger,
-                deviceRegistry,
+                _deviceRegistry,
                 _positionChannel,
                 _deviceChannel,
                 _alarmChannel);
@@ -229,13 +232,13 @@ public sealed class TrackingRuntimeHostedService : BackgroundService
                     // ---------------------------------------------
 
                     var connectedDevice =
-                        deviceRegistry.Devices
+                        _deviceRegistry.Devices
                             .FirstOrDefault(d => d.Imei == deviceId);
 
                     var lastSeen =
                         connectedDevice?.LastSeen ?? offlineTime;
 
-                    deviceRegistry.Disconnect(
+                    _deviceRegistry.Disconnect(
                         deviceId);
 
                     // ---------------------------------------------
