@@ -149,7 +149,7 @@ This application includes free and open-source components under the MIT License.
 ### Clone
 
 ```bash
-git clone https://github.com/TelalOmer/smart-tracking-ai.git
+git clone https://github.com/matrix208/smart-tracking-ai.git
 cd smart-tracking-ai/TrackingPlatform
 ```
 
