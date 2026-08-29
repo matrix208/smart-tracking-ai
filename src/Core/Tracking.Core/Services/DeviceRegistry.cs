@@ -108,6 +108,30 @@ public bool TryGetBySession(
         }
     }
 
+    // فصل Session الحالية فقط
+    // يمنع Session قديمة من فصل Session أحدث بعد إعادة الاتصال.
+    public bool DisconnectSession(
+        IDeviceSession session)
+    {
+        if (string.IsNullOrWhiteSpace(session.DeviceId))
+            return false;
+
+        if (!_devices.TryGetValue(
+            session.DeviceId,
+            out var device))
+            return false;
+
+        if (!ReferenceEquals(
+            device.Session,
+            session))
+            return false;
+
+        device.IsOnline = false;
+        device.Session = null;
+
+        return true;
+    }
+
     // استبدال جلسة الجهاز عند إعادة الاتصال
     public async Task ReplaceSessionAsync(
         string imei,

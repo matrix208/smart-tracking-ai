@@ -1,9 +1,14 @@
 using System.Text;
+
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+
 using Tracking.API.Auth;
+using Tracking.API.Plugins;
+
 using Tracking.Application.DependencyInjection;
 using Tracking.Network;
+using Tracking.PluginManager.Configuration;
 using Tracking.Pipeline;
 using Tracking.Runtime.DependencyInjection;
 using Tracking.Security.Password;
@@ -12,14 +17,36 @@ using Tracking.Storage.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ============================================================
+// MVC / API
+// ============================================================
+
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+
+// ============================================================
+// Storage
+// ============================================================
 
 builder.Services.AddTrackingStorage(
     builder.Configuration);
 
+// ============================================================
+// Application
+// ============================================================
+
 builder.Services.AddTrackingApplication();
-builder.Services.AddTrackingRuntime();
+
+// ============================================================
+// Tracking Runtime
+// ============================================================
+
+builder.Services.AddTrackingRuntime(
+    builder.Configuration);
+
+// ============================================================
+// JWT
+// ============================================================
 
 builder.Services.Configure<JwtOptions>(
     builder.Configuration.GetSection(
@@ -42,7 +69,8 @@ if (string.IsNullOrWhiteSpace(jwtOptions.SigningKey) ||
 }
 
 builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddAuthentication(
+        JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters =
@@ -65,14 +93,44 @@ builder.Services
             };
     });
 
+// ============================================================
+// Authorization
+// ============================================================
+
 builder.Services.AddAuthorization(options =>
 {
-    options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
-        .RequireAuthenticatedUser()
-        .Build();
+    options.FallbackPolicy =
+        new Microsoft.AspNetCore.Authorization
+            .AuthorizationPolicyBuilder()
+            .RequireAuthenticatedUser()
+            .Build();
 });
 
+// ============================================================
+// Plugin Repository
+// ============================================================
+//
+// Repository service is responsible for discovering installed
+// plugin packages from the configured repository location.
+//
+// It is intentionally separated from the runtime plugin manager.
+// ============================================================
+
+builder.Services.Configure<PluginManagerOptions>(
+    builder.Configuration.GetSection(
+        PluginManagerOptions.SectionName));
+
+builder.Services.AddSingleton<PluginRepositoryService>();
+
+// ============================================================
+// Build Application
+// ============================================================
+
 var app = builder.Build();
+
+// ============================================================
+// Database Initialization
+// ============================================================
 
 using (var scope = app.Services.CreateScope())
 {
@@ -82,25 +140,34 @@ using (var scope = app.Services.CreateScope())
     db.Database.EnsureCreated();
 }
 
+// ============================================================
+// Development Seed
+// ============================================================
+
 if (app.Environment.IsDevelopment())
 {
-    using var seedScope = app.Services.CreateScope();
+    using var seedScope =
+        app.Services.CreateScope();
 
     var seedDb = seedScope.ServiceProvider
         .GetRequiredService<TrackingDbContext>();
 
     if (!seedDb.Users.Any())
     {
-        var passwordHasher = seedScope.ServiceProvider
-            .GetRequiredService<PasswordHasher>();
+        var passwordHasher =
+            seedScope.ServiceProvider
+                .GetRequiredService<PasswordHasher>();
 
-        var passwordValidator = new PasswordValidator();
+        var passwordValidator =
+            new PasswordValidator();
+
         const string username = "admin";
         const string password = "V9!qL2#xR7@pZ4";
 
-        var validation = passwordValidator.Validate(
-            password,
-            username);
+        var validation =
+            passwordValidator.Validate(
+                password,
+                username);
 
         if (!validation.IsValid)
         {
@@ -110,30 +177,49 @@ if (app.Environment.IsDevelopment())
                     validation.Errors));
         }
 
-        seedDb.Users.Add(new Tracking.Storage.Entities.UserEntity
-        {
-            Username = username,
-            PasswordHash = passwordHasher.Hash(password),
-            DisplayName = "System Administrator",
-            Role = "Administrator",
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        });
+        seedDb.Users.Add(
+            new Tracking.Storage.Entities.UserEntity
+            {
+                Username = username,
+                PasswordHash =
+                    passwordHasher.Hash(password),
+                DisplayName =
+                    "System Administrator",
+                Role =
+                    "Administrator",
+                IsActive =
+                    true,
+                CreatedAt =
+                    DateTime.UtcNow
+            });
 
         seedDb.SaveChanges();
 
         Console.WriteLine(
             "Default administrator user created: admin");
     }
-
-    app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+// ============================================================
+// HTTP Pipeline
+// ============================================================
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// ============================================================
+// OpenAPI
+// ============================================================
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+}
+
+// ============================================================
+// Run
+// ============================================================
 
 app.Run();

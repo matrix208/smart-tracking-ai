@@ -1,43 +1,46 @@
 using Tracking.SDK.Interfaces;
 
 namespace Tracking.PluginManager.Registry;
+
 public sealed class ProtocolRegistry
 {
-    private readonly Dictionary<string, IProtocolPlugin> _plugins = new();
-
-    public IReadOnlyCollection<IProtocolPlugin> Plugins => _plugins.Values;
+    private readonly Dictionary<string, IProtocolPlugin> _plugins =
+        new(StringComparer.OrdinalIgnoreCase);
 
     public void Register(IProtocolPlugin plugin)
     {
-        if (_plugins.ContainsKey(plugin.Manifest.Id))
+        ArgumentNullException.ThrowIfNull(plugin);
+
+        var id = plugin.Manifest.Id;
+
+        if (string.IsNullOrWhiteSpace(id))
             throw new InvalidOperationException(
-                $"Plugin '{plugin.Manifest.Id}' is already registered.");
+                "Plugin manifest id is required.");
 
-        _plugins.Add(plugin.Manifest.Id, plugin);
+        _plugins[id] = plugin;
     }
 
-    public IProtocolPlugin? Find(ReadOnlySpan<byte> packet)
+    public bool Remove(string id)
     {
-        foreach (var plugin in _plugins.Values)
-        {
-            if (plugin.CanHandle(packet))
-                return plugin;
-        }
-
-        return null;
+        return _plugins.Remove(id);
     }
-    public IProtocolPlugin? Get(string protocolId)
-{
-    _plugins.TryGetValue(protocolId, out var plugin);
-    return plugin;
-}
 
-public bool TryGet(
-    string protocolId,
-    out IProtocolPlugin? plugin)
-{
-    return _plugins.TryGetValue(
-        protocolId,
-        out plugin);
-}
+    public bool Contains(string id)
+    {
+        return _plugins.ContainsKey(id);
+    }
+
+    public IProtocolPlugin? Get(string id)
+    {
+        return _plugins.TryGetValue(
+            id,
+            out var plugin)
+            ? plugin
+            : null;
+    }
+
+    public IReadOnlyCollection<IProtocolPlugin> GetAll()
+    {
+        return _plugins.Values.ToList();
+    }
 }

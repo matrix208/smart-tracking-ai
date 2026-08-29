@@ -45,7 +45,7 @@ foreach (var plugin in plugins)
 Console.WriteLine();
 
 var pipeline = new PacketPipeline(
-    plugins);
+    pluginManager);
 
 
 var registry = new DeviceRegistry();

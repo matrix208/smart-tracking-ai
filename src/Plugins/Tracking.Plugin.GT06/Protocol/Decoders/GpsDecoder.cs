@@ -1,6 +1,6 @@
-
 using BinaryReader = Tracking.Protocol.Binary.BinaryReader;
 using Tracking.Plugin.GT06.Protocol.Models;
+using System.Globalization;
 
 namespace Tracking.Plugin.GT06.Protocol.Decoders;
 
@@ -77,6 +77,7 @@ public sealed class GpsDecoder
 
         Console.WriteLine(
             $"GPS: " +
+            $"Time={timestamp.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)} UTC, " +
             $"Lat={latitude}, " +
             $"Lon={longitude}, " +
             $"Speed={speed}, " +

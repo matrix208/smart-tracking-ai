@@ -4,6 +4,7 @@
     <ProjectReference Include="..\Tracking.Plugin.Abstractions\Tracking.Plugin.Abstractions.csproj" />
     <ProjectReference Include="..\Tracking.PluginLoader\Tracking.PluginLoader.csproj" />
     <ProjectReference Include="..\Tracking.Package\Tracking.Package.csproj" />
+      <ProjectReference Include="..\Tracking.PluginManager\Tracking.PluginManager.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

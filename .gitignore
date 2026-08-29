@@ -81,3 +81,10 @@ tracking.db
 *.bak
 *.before-smartavl-dashboard
 *.before-smartavl-dashboard-2
+server.log
+tracking.db-shm
+tracking.db-wal
+tracking.db-journal
+.plugin-management-backup-*/
+.stage24-backup-*/
+.gitignore.stage26-backup-*

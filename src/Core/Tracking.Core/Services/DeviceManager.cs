@@ -205,7 +205,7 @@ public sealed class DeviceManager
             new DeviceInfo
             {
                 Imei = imei,
-                Protocol = session.ProtocolId,
+                Protocol = session.ProtocolId ?? "GT06",
                 IsOnline = true,
                 LastSeen = DateTime.UtcNow,
 

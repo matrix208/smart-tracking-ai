@@ -18,6 +18,7 @@ private readonly CommandEncoder _commandEncoder = new();
     {
         Id = "gt06",
         Name = "GT06 Protocol",
+        Description = "GT06 GPS tracking protocol plugin",
         Version = "1.0.0",
         Author = "Telal",
         Manufacturer = "Tracking Platform",
@@ -51,7 +52,7 @@ private readonly CommandEncoder _commandEncoder = new();
         // Attach session device id to GPS message
 if (decoded is GpsMessage gps)
 {
-    gps.DeviceId = session.DeviceId;
+    gps.DeviceId = session.DeviceId ?? string.Empty;
 
     Console.WriteLine(
         $"GPS DeviceId Attached: {gps.DeviceId}");

@@ -1,0 +1,17 @@
+{
+  "Id": "gt06",
+  "Name": "GT06 Protocol",
+  "Description": "",
+  "Version": "1.0.0",
+  "Author": "Telal",
+  "Manufacturer": "Tracking Platform",
+  "EntryPoint": "Tracking.Plugin.GT06.Plugin.Gt06Plugin",
+  "Assembly": "Tracking.Plugin.GT06.dll",
+  "SdkVersion": "",
+  "DefaultPort": 5001,
+  "SupportsTcp": true,
+  "SupportsUdp": false,
+  "Models": [],
+  "Capabilities": [],
+  "Enabled": true
+}

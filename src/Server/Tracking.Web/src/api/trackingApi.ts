@@ -50,6 +50,44 @@ export interface DeviceState {
   signal?: number | null
 }
 
+export interface PluginRepositoryPackage {
+  packageId: string
+  displayName: string
+  description: string
+  version: string
+  sdkVersion: string
+  minServerVersion: string
+  manufacturer: string
+  company: string
+  author: string
+  type: number
+  assembly: string
+  entryPoint: string
+  icon: string
+  readme: string
+  license: string
+  defaultPort: number
+  supportsTcp: boolean
+  supportsUdp: boolean
+  permissions: string[]
+  dependencies: string[]
+}
+
+export interface PluginRuntimeState {
+  id: string
+  name: string
+  version: string
+  description: string
+  author: string
+  manufacturer: string
+  defaultPort: number
+  supportsTcp: boolean
+  supportsUdp: boolean
+  models: string[]
+  capabilities: string[]
+  enabled: boolean
+}
+
 const TOKEN_KEY = 'tracking-access-token'
 
 export function getAccessToken(): string | null {
@@ -88,6 +126,7 @@ export async function login(
 
 export function logout(): void {
   localStorage.removeItem(TOKEN_KEY)
+  window.dispatchEvent(new Event('tracking-auth-changed'))
 }
 
 async function getJson<T>(url: string): Promise<T> {
@@ -113,6 +152,78 @@ async function getJson<T>(url: string): Promise<T> {
   return response.json() as Promise<T>
 }
 
+export async function setPluginEnabled(
+  pluginId: string,
+  enabled: boolean,
+): Promise<void> {
+  const token = getAccessToken()
+
+  const response = await fetch(
+    `/api/plugins/${encodeURIComponent(pluginId)}/${enabled ? 'enable' : 'disable'}`,
+    {
+      method: 'POST',
+      headers: token
+        ? {
+            Authorization: `Bearer ${token}`,
+          }
+        : undefined,
+    },
+  )
+
+  if (response.status === 401) {
+    logout()
+    throw new Error('Authentication required')
+  }
+
+  if (!response.ok) {
+    throw new Error(`Plugin update failed: ${response.status}`)
+  }
+}
+
+export async function installPlugin(
+  pluginId: string,
+): Promise<void> {
+  const token = getAccessToken()
+
+  const response = await fetch(
+    `/api/plugins/${encodeURIComponent(pluginId)}/install`,
+    {
+      method: 'POST',
+      headers: token
+        ? {
+            Authorization: `Bearer ${token}`,
+          }
+        : undefined,
+    },
+  )
+
+  if (response.status === 401) {
+    logout()
+    throw new Error('Authentication required')
+  }
+
+  if (!response.ok) {
+    let detail = `Plugin installation failed: ${response.status}`
+
+    try {
+      const data = (await response.json()) as {
+        detail?: string
+        message?: string
+      }
+
+      detail = data.detail || data.message || detail
+    } catch {
+      // Keep the HTTP status message when the response has no JSON body.
+    }
+
+    throw new Error(detail)
+  }
+}
+
+export function getPlugins(): Promise<PluginRuntimeState[]> {
+  return getJson<PluginRuntimeState[]>('/api/plugins')
+}
+
 export function getDevices(): Promise<Device[]> {
   return getJson<Device[]>('/api/devices')
 }
@@ -123,4 +234,10 @@ export function getPositions(): Promise<Position[]> {
 
 export function getDeviceStates(): Promise<DeviceState[]> {
   return getJson<DeviceState[]>('/api/devicestates')
+}
+
+
+
+export function getPluginRepository(): Promise<PluginRepositoryPackage[]> {
+  return getJson<PluginRepositoryPackage[]>('/api/plugins/repository')
 }

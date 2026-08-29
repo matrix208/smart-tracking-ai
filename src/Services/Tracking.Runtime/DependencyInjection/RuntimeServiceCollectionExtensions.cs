@@ -1,54 +1,126 @@
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+
 using Tracking.Core.Services;
 using Tracking.Core.Workers;
+
 using Tracking.Persistence.Channels;
 using Tracking.Persistence.Services;
 using Tracking.Persistence.Workers;
+
+using Tracking.PluginManager.Configuration;
+using Tracking.PluginManager.Services;
 
 namespace Tracking.Runtime.DependencyInjection;
 
 public static class RuntimeServiceCollectionExtensions
 {
-public static IServiceCollection AddTrackingRuntime(
-this IServiceCollection services)
-{
-// =====================================================
-// Core Services
-// =====================================================
+    public static IServiceCollection AddTrackingRuntime(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        // =====================================================
+        // Plugin Configuration
+        // =====================================================
 
-    services.AddSingleton<DeviceRegistry>();
-    services.AddSingleton<DeviceStateService>();
+        services.Configure<PluginOptions>(
+            configuration.GetSection(
+                PluginOptions.SectionName));
 
-    // =====================================================
-    // Data Channels
-    // =====================================================
+        // =====================================================
+        // Plugin Runtime
+        // =====================================================
 
-    services.AddSingleton<PositionChannel>();
-    services.AddSingleton<DeviceChannel>();
-    services.AddSingleton<AlarmChannel>();
+        services.AddSingleton<ProtocolPluginManager>();
 
-    // =====================================================
-    // Persistence Workers
-    // =====================================================
+        services.AddSingleton<Tracking.PluginManager.Services.PluginLifecycleManager>();
 
-    services.AddHostedService<PositionWriterWorker>();
-    services.AddHostedService<DeviceWriterWorker>();
-    services.AddHostedService<AlarmWriterWorker>();
+        services.Configure<PluginManagerOptions>(
+            configuration.GetSection(
+                PluginManagerOptions.SectionName));
 
-    // =====================================================
-    // Device State Monitor
-    // =====================================================
+        services.AddSingleton<InstalledPluginStore>(sp =>
+        {
+            var options =
+                sp.GetRequiredService<IOptions<PluginManagerOptions>>()
+                    .Value;
 
-    services.AddHostedService<HeartbeatMonitorWorker>();
+            var path = options.InstalledPluginsPath;
 
-    // =====================================================
-    // Runtime Engine
-    // =====================================================
+            if (!Path.IsPathRooted(path))
+            {
+                path = Path.GetFullPath(
+                    Path.Combine(
+                        Directory.GetCurrentDirectory(),
+                        path));
+            }
 
-    services.AddHostedService<
-        Services.TrackingRuntimeHostedService>();
+            return new InstalledPluginStore(path);
+        });
 
-    return services;
-}
+        services.AddSingleton<Tracking.Plugin.Abstractions.Interfaces.IPluginInstaller>(sp =>
+        {
+            var installedStore = sp.GetRequiredService<InstalledPluginStore>();
 
+            var publicKeyPath = configuration["PackageSecurity:PublicKeyPath"]
+                ?? throw new InvalidOperationException(
+                    "PackageSecurity:PublicKeyPath is not configured.");
+
+            if (!Path.IsPathRooted(publicKeyPath))
+            {
+                publicKeyPath = Path.GetFullPath(
+                    Path.Combine(
+                        Directory.GetCurrentDirectory(),
+                        publicKeyPath));
+            }
+
+            var requireSignature = configuration.GetValue<bool>(
+                "PackageSecurity:RequireSignature",
+                defaultValue: true);
+
+            return new Tracking.Plugin.Runtime.Installer.PluginInstaller(
+                installedStore,
+                publicKeyPath,
+                requireSignature);
+        });
+
+        // =====================================================
+        // Core Services
+        // =====================================================
+
+        services.AddSingleton<DeviceRegistry>();
+        services.AddSingleton<DeviceStateService>();
+
+        // =====================================================
+        // Data Channels
+        // =====================================================
+
+        services.AddSingleton<PositionChannel>();
+        services.AddSingleton<DeviceChannel>();
+        services.AddSingleton<AlarmChannel>();
+
+        // =====================================================
+        // Persistence Workers
+        // =====================================================
+
+        services.AddHostedService<PositionWriterWorker>();
+        services.AddHostedService<DeviceWriterWorker>();
+        services.AddHostedService<AlarmWriterWorker>();
+
+        // =====================================================
+        // Device State Monitor
+        // =====================================================
+
+        services.AddHostedService<HeartbeatMonitorWorker>();
+
+        // =====================================================
+        // Runtime Engine
+        // =====================================================
+
+        services.AddHostedService<
+            Services.TrackingRuntimeHostedService>();
+
+        return services;
+    }
 }

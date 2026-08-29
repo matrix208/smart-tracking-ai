@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
+import { isAuthenticated, logout } from './api/trackingApi'
 
 import Dashboard from './pages/Dashboard'
 import LiveMap from './pages/LiveMap'
 import PluginManager from './pages/PluginManager'
+import Login from './pages/Login'
 
 import './App.css'
 
@@ -15,6 +17,19 @@ type Page =
 
 function App() {
   const [page, setPage] = useState<Page>('dashboard')
+  const [authenticated, setAuthenticated] = useState(() => isAuthenticated())
+
+  useEffect(() => {
+    const handleAuthChanged = () => {
+      setAuthenticated(isAuthenticated())
+    }
+
+    window.addEventListener('tracking-auth-changed', handleAuthChanged)
+
+    return () => {
+      window.removeEventListener('tracking-auth-changed', handleAuthChanged)
+    }
+  }, [])
 
   const [language, setLanguage] = useState<Language>(() => {
     const saved = localStorage.getItem('tracking-language')
@@ -44,6 +59,19 @@ function App() {
   }, [theme])
 
   const isArabic = language === 'ar'
+
+  if (!authenticated) {
+    return (
+      <div className={`smart-app ${isArabic ? 'rtl' : 'ltr'}`}>
+        <Login
+          language={language}
+          onLoginSuccess={() => setAuthenticated(true)}
+          onLanguageChange={setLanguage}
+        />
+      </div>
+    )
+  }
+
 
   const pageTitle =
     page === 'dashboard'
@@ -105,6 +133,17 @@ function App() {
               : 'System Admin'}
           </div>
 
+          <button
+            type="button"
+            className="smart-logout-button"
+            onClick={() => {
+              logout()
+              setAuthenticated(false)
+              setPage('dashboard')
+            }}
+          >
+            {isArabic ? 'خروج' : 'Logout'}
+          </button>
           <button
             type="button"
             className="smart-language-button"
