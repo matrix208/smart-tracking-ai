@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react'
-import { isAuthenticated, logout } from './api/trackingApi'
 
 import Dashboard from './pages/Dashboard'
 import LiveMap from './pages/LiveMap'
 import PluginManager from './pages/PluginManager'
-import AIInsights from './pages/AIInsights'
-import Login from './pages/Login'
 
 import './App.css'
 
@@ -15,23 +12,9 @@ type Page =
   | 'dashboard'
   | 'map'
   | 'plugins'
-  | 'ai'
 
 function App() {
   const [page, setPage] = useState<Page>('dashboard')
-  const [authenticated, setAuthenticated] = useState(() => isAuthenticated())
-
-  useEffect(() => {
-    const handleAuthChanged = () => {
-      setAuthenticated(isAuthenticated())
-    }
-
-    window.addEventListener('tracking-auth-changed', handleAuthChanged)
-
-    return () => {
-      window.removeEventListener('tracking-auth-changed', handleAuthChanged)
-    }
-  }, [])
 
   const [language, setLanguage] = useState<Language>(() => {
     const saved = localStorage.getItem('tracking-language')
@@ -62,19 +45,6 @@ function App() {
 
   const isArabic = language === 'ar'
 
-  if (!authenticated) {
-    return (
-      <div className={`smart-app ${isArabic ? 'rtl' : 'ltr'}`}>
-        <Login
-          language={language}
-          onLoginSuccess={() => setAuthenticated(true)}
-          onLanguageChange={setLanguage}
-        />
-      </div>
-    )
-  }
-
-
   const pageTitle =
     page === 'dashboard'
       ? isArabic
@@ -84,8 +54,6 @@ function App() {
         ? isArabic
           ? 'الخريطة الحية'
           : 'Live Map'
-        : page === 'ai'
-          ? 'AI Insights'
         : isArabic
           ? 'إدارة الإضافات'
           : 'Plugin Manager'
@@ -137,17 +105,6 @@ function App() {
               : 'System Admin'}
           </div>
 
-          <button
-            type="button"
-            className="smart-logout-button"
-            onClick={() => {
-              logout()
-              setAuthenticated(false)
-              setPage('dashboard')
-            }}
-          >
-            {isArabic ? 'خروج' : 'Logout'}
-          </button>
           <button
             type="button"
             className="smart-language-button"
@@ -306,26 +263,6 @@ function App() {
               </span>
             </button>
 
-            {/* AI INSIGHTS */}
-            <button
-              type="button"
-              className={
-                page === 'ai'
-                  ? 'smart-nav-item active'
-                  : 'smart-nav-item'
-              }
-              onClick={() => setPage('ai')}
-            >
-              <span className="smart-nav-label">
-                <span className="smart-nav-icon">
-                  🤖
-                </span>
-                AI Insights
-              </span>
-              <span className="smart-nav-plus">
-                +
-              </span>
-            </button>
             {/* PLUGIN MANAGER */}
 
             <button
@@ -384,9 +321,6 @@ function App() {
 
           {page === 'plugins' && (
             <PluginManager language={language} />
-          )}
-          {page === 'ai' && (
-            <AIInsights language={language} />
           )}
         </main>
       </div>
