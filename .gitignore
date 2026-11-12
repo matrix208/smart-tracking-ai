@@ -1,0 +1,101 @@
+# SQLite temporary files
+*.db-shm
+*.db-wal
+
+# SQLite databases (اختياري)
+# *.db# Build
+bin/
+obj/
+
+# Visual Studio
+.vs/
+.vscode/
+
+# Rider
+.idea/
+
+# User files
+*.user
+*.suo
+
+# macOS
+.DS_Store
+
+# Test
+TestResults/
+
+# Packages
+*.nupkg
+*.snupkg
+
+# Runtime packages
+runtime/packages/
+
+# Archives
+*.zip
+tracking.db
+
+# Dependencies / build output
+node_modules/
+dist/
+
+# SQLite runtime files
+*.db-shm
+*.db-wal
+
+# Local backups
+src-backup/
+*.backup
+*.theme-backup
+*.before-map
+*.before-theme
+*.save
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Local AI/editor folders
+.agent/
+.claude/
+.codebuddy/
+.codex/
+.continue/
+.cursor/
+.gemini/
+.kiro/
+.opencode/
+.qoder/
+.roo/
+.trae/
+.windsurf/
+
+# SQLite runtime files
+*.db-shm
+*.db-wal
+
+# Local SQLite database
+tracking.db
+
+# Backup files
+*.bak
+*.before-smartavl-dashboard
+*.before-smartavl-dashboard-2
+server.log
+tracking.db-shm
+tracking.db-wal
+tracking.db-journal
+.plugin-management-backup-*/
+.stage24-backup-*/
+.gitignore.stage26-backup-*
+
+# Local API configuration (may contain secrets)
+src/Server/Tracking.API/appsettings.json
+src/Server/Tracking.API/appsettings.Development.json
+
+# Local runtime state and generated plugin files
+/data/plugins/
+/repository/GT06/package/
+/server.log
+*.db-journal
+*.before-auth

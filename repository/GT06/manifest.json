@@ -1,0 +1,22 @@
+{
+  "packageId": "gt06",
+  "displayName": "GT06 Protocol",
+  "description": "GT06 GPS tracking protocol plugin.",
+  "version": "1.0.0",
+  "sdkVersion": "1.0.0",
+  "minServerVersion": "1.0.0",
+  "manufacturer": "Tracking Platform",
+  "company": "Tracking Platform",
+  "author": "Telal",
+  "type": 0,
+  "assembly": "Tracking.Plugin.GT06.dll",
+  "entryPoint": "Tracking.Plugin.GT06.Plugin.Gt06Plugin",
+  "icon": "icon.png",
+  "readme": "README.md",
+  "license": "LICENSE",
+  "defaultPort": 5001,
+  "supportsTcp": true,
+  "supportsUdp": false,
+  "permissions": [],
+  "dependencies": []
+}

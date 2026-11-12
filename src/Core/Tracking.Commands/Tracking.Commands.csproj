@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Tracking.Core\Tracking.Core.csproj" />
+    <ProjectReference Include="..\Tracking.SDK\Tracking.SDK.csproj" />
+    <ProjectReference Include="..\Tracking.PluginManager\Tracking.PluginManager.csproj" />
+
+    <ProjectReference Include="..\..\Infrastructure\Tracking.Storage\Tracking.Storage.csproj" />
+  </ItemGroup>
+
+</Project>
