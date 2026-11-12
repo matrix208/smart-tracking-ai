@@ -112,19 +112,20 @@ public sealed class TcpTrackingServer
 
 
 
-                var packet =
+                var packets =
                     _packetReader.Read(
                         buffer,
                         read);
 
-
-
                 if (PacketReceived != null)
                 {
-                    await PacketReceived(
-                        session,
-                        packet);
-                }
+                    foreach (var packet in packets)
+                    {
+                        await PacketReceived(
+                            session,
+                            packet);
+                    }
+                                }
             }
         }
         catch (Exception ex)

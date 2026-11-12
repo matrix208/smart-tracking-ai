@@ -10,9 +10,13 @@ public sealed class UserEntity
 
     public string DisplayName { get; set; } = string.Empty;
 
+    // Legacy role field kept temporarily for backward compatibility.
+    // Authorization will be driven by UserRoles.
     public string Role { get; set; } = "Administrator";
 
     public bool IsActive { get; set; } = true;
+
+    public ICollection<UserRoleEntity> UserRoles { get; set; } = [];
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

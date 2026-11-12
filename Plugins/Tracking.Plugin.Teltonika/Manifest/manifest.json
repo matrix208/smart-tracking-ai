@@ -1,0 +1,17 @@
+{
+  "Id": "teltonika",
+  "Name": "Teltonika Codec8 Extended",
+  "Description": "Teltonika Codec8 / Codec8 Extended protocol plugin (FMC130 and FMB/FMC/FMM families)",
+  "Version": "1.0.0",
+  "Author": "Telal",
+  "Manufacturer": "Tracking Platform",
+  "EntryPoint": "Tracking.Plugin.Teltonika.Plugin.TeltonikaPlugin",
+  "Assembly": "Tracking.Plugin.Teltonika.dll",
+  "SdkVersion": "1.0.0",
+  "DefaultPort": 5002,
+  "SupportsTcp": true,
+  "SupportsUdp": false,
+  "Models": ["FMC130", "FMB920", "FMB140", "FMC150", "FMB640"],
+  "Capabilities": ["gps", "io-elements", "codec8", "codec8-extended"],
+  "Enabled": true
+}

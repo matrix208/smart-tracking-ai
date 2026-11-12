@@ -16,15 +16,33 @@ public sealed class JwtTokenService
         _options = options.Value;
     }
 
-    public string CreateToken(UserEntity user)
+    public string CreateToken(
+        UserEntity user,
+        IReadOnlyCollection<string> roleNames,
+        IReadOnlyCollection<string> permissionKeys)
     {
-        var claims = new[]
+        var claims = new List<Claim>
         {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
-            new Claim(ClaimTypes.Name, user.Username),
-            new Claim(ClaimTypes.Role, user.Role)
+            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new(JwtRegisteredClaimNames.UniqueName, user.Username),
+            new(ClaimTypes.Name, user.Username),
+            // Legacy single-role claim kept for backward compatibility
+            // with any code still reading user.Role directly.
+            new(ClaimTypes.Role, user.Role)
         };
+
+        foreach (var roleName in roleNames)
+        {
+            if (!string.Equals(roleName, user.Role, StringComparison.OrdinalIgnoreCase))
+            {
+                claims.Add(new Claim(ClaimTypes.Role, roleName));
+            }
+        }
+
+        foreach (var permissionKey in permissionKeys)
+        {
+            claims.Add(new Claim("permission", permissionKey));
+        }
 
         var key = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(_options.SigningKey));

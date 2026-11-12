@@ -1187,3 +1187,212 @@ html[data-theme="dark"] {
   .ai-stats-grid { grid-template-columns: 1fr; }
   .ai-eta-meta { grid-template-columns: 1fr; }
 }
+
+/* ---------- Driver app entry link on main login ---------- */
+.login-driver-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding: 12px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: .15s;
+}
+.login-driver-link:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.login-driver-link span {
+  font-size: 14px;
+}
+
+/* ---------- Driver app entry link on main login ---------- */
+.login-driver-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding: 12px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: .15s;
+}
+.login-driver-link:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.login-driver-link span {
+  font-size: 14px;
+}
+
+/* =========================================================
+   LOGIN — dynamic media
+   ========================================================= */
+.login-illustration-media {
+  width: 100%;
+  max-height: 420px;
+  object-fit: cover;
+  border-radius: var(--radius);
+}
+
+/* =========================================================
+   SETTINGS PAGE
+   ========================================================= */
+.settings-page { padding-bottom: 40px; }
+.settings-panel { margin: 16px 32px 0; }
+
+.settings-media-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  padding: 20px;
+}
+
+.settings-preview { display: flex; flex-direction: column; gap: 12px; }
+.settings-preview-label { font-size: 11px; font-weight: 700; color: var(--faint); }
+.settings-preview-box {
+  aspect-ratio: 16 / 10;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  background: var(--panel-2);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.settings-preview-box img,
+.settings-preview-box video {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.settings-preview-placeholder {
+  color: var(--faint); font-size: 12.5px; text-align: center; padding: 20px;
+}
+
+.settings-editor { display: flex; flex-direction: column; gap: 14px; }
+.settings-mode-tabs { display: flex; gap: 8px; }
+.settings-mode-tabs button {
+  flex: 1; height: 40px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--panel); color: var(--muted); font-size: 12.5px; font-weight: 700;
+}
+.settings-mode-tabs button.active { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+.settings-upload-block p { margin: 0 0 10px; color: var(--muted); font-size: 12.5px; }
+.settings-upload-block input[type="file"] {
+  width: 100%; padding: 10px; border: 1px dashed var(--line); border-radius: var(--radius-sm);
+  background: var(--panel-2); font-size: 12.5px;
+}
+
+.settings-url-block { display: flex; flex-direction: column; gap: 10px; }
+.settings-type-toggle { display: flex; gap: 8px; }
+.settings-type-toggle button {
+  flex: 1; height: 36px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--panel); color: var(--muted); font-size: 12px; font-weight: 700;
+}
+.settings-type-toggle button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.settings-url-input {
+  height: 42px; padding: 0 14px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--panel-2); font-size: 13px; direction: ltr; text-align: left;
+}
+.settings-url-input:focus { outline: none; border-color: var(--accent); background: var(--panel); }
+
+.settings-alert { padding: 10px 12px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; }
+.settings-alert.error { background: var(--red-soft); color: #b91c1c; }
+.settings-alert.success { background: var(--green-soft); color: #16a34a; }
+
+@media (max-width: 900px) {
+  .settings-panel { margin-left: 16px; margin-right: 16px; }
+  .settings-media-body { grid-template-columns: 1fr; padding: 16px; }
+}
+
+/* =========================================================
+   ROLES & PERMISSIONS
+   ========================================================= */
+.roles-page { padding-bottom: 40px; }
+.roles-error { margin: 0 32px 12px; }
+
+.roles-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 14px;
+  margin: 16px 32px 0;
+}
+
+.roles-list-panel { display: flex; flex-direction: column; }
+.roles-list { padding: 10px 14px; display: flex; flex-direction: column; gap: 6px; max-height: 480px; overflow-y: auto; }
+
+.roles-list-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--line);
+  cursor: pointer; transition: .15s;
+}
+.roles-list-item:hover { border-color: var(--accent); }
+.roles-list-item.active { background: var(--accent-soft); border-color: var(--accent); }
+.roles-list-item strong { display: block; font-size: 13px; }
+.roles-list-item small { display: block; margin-top: 2px; color: var(--faint); font-size: 10.5px; }
+
+.roles-badge.system {
+  padding: 3px 8px; border-radius: 999px; background: var(--panel-2); color: var(--faint);
+  font-size: 9.5px; font-weight: 700; flex-shrink: 0;
+}
+.roles-item-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.roles-item-actions button {
+  width: 26px; height: 26px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel);
+}
+
+.roles-create-row { display: flex; gap: 8px; padding: 12px 14px; border-top: 1px solid var(--line); }
+.roles-create-row input {
+  flex: 1; height: 38px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); font-size: 12.5px;
+}
+
+.roles-permissions-panel { min-height: 400px; }
+.roles-permission-groups { padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 16px; }
+.roles-permission-group-title { font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 8px; }
+.roles-permission-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.roles-permission-chip {
+  display: flex; align-items: center; gap: 6px; padding: 7px 12px;
+  border: 1px solid var(--line); border-radius: 999px; font-size: 11.5px; color: var(--muted);
+  cursor: pointer;
+}
+.roles-permission-chip input { accent-color: var(--accent); }
+
+.roles-users-panel { margin: 16px 32px 0; }
+
+@media (max-width: 1100px) {
+  .roles-layout { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 900px) {
+  .roles-layout, .roles-users-panel, .roles-error { margin-left: 16px; margin-right: 16px; }
+}
+
+/* =========================================================
+   USER MANAGEMENT
+   ========================================================= */
+.users-page { padding-bottom: 40px; }
+.users-create-panel,
+.users-list-panel { margin: 16px 32px 0; }
+
+.users-create-form { padding: 18px 20px; display: flex; flex-direction: column; gap: 16px; }
+.users-create-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.users-create-row label,
+.users-create-form > div > label {
+  display: block; margin-bottom: 6px; font-size: 11.5px; font-weight: 700; color: var(--muted);
+}
+.users-create-row input {
+  width: 100%; height: 42px; padding: 0 12px; border: 1px solid var(--line);
+  border-radius: var(--radius-sm); font-size: 12.5px;
+}
+
+@media (max-width: 900px) {
+  .users-create-panel, .users-list-panel { margin-left: 16px; margin-right: 16px; }
+  .users-create-row { grid-template-columns: 1fr; }
+}

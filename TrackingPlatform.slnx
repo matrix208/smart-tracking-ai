@@ -94,5 +94,6 @@
 
   <Folder Name="/tests/">
     <Project Path="tests/Gt06.TestClient/Gt06.TestClient.csproj" />
+    <Project Path="tests/Tracking.Security.Tests/Tracking.Security.Tests.csproj" />
   </Folder>
 </Solution>

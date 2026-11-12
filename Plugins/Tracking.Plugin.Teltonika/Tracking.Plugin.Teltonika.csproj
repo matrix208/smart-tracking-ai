@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <AssemblyName>Tracking.Plugin.Teltonika</AssemblyName>
+    <RootNamespace>Tracking.Plugin.Teltonika</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Core/Tracking.SDK/Tracking.SDK.csproj" />
+    <ProjectReference Include="../../src/Core/Tracking.Network/Tracking.Network.csproj" />
+    <ProjectReference Include="../../src/Core/Tracking.Core/Tracking.Core.csproj" />
+    <ProjectReference Include="../../src/Core/Tracking.Protocol/Tracking.Protocol.csproj" />
+  </ItemGroup>
+
+</Project>

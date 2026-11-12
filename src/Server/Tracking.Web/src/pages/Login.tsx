@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { login } from '../api/trackingApi'
+import { getPublicLoginMedia, type LoginMediaConfig } from '../api/settingsApi'
 import type { Language } from '../App'
 
 interface LoginProps {
@@ -18,15 +19,17 @@ function Login({ language, onLoginSuccess, onLanguageChange }: LoginProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const [media, setMedia] = useState<LoginMediaConfig>({ type: null, url: null })
+
+  useEffect(() => {
+    getPublicLoginMedia().then(setMedia)
+  }, [])
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
     if (!username.trim() || !password) {
-      setError(
-        isArabic
-          ? 'يرجى إدخال اسم المستخدم وكلمة المرور.'
-          : 'Please enter your username and password.',
-      )
+      setError(isArabic ? 'يرجى إدخال اسم المستخدم وكلمة المرور.' : 'Please enter your username and password.')
       return
     }
 
@@ -38,15 +41,12 @@ function Login({ language, onLoginSuccess, onLanguageChange }: LoginProps) {
       onLoginSuccess()
     } catch (err) {
       console.error('Login:', err)
-
       setError(
         err instanceof Error
           ? isArabic && err.message === 'Login failed: 401'
             ? 'اسم المستخدم أو كلمة المرور غير صحيحة.'
             : err.message
-          : isArabic
-            ? 'تعذر تسجيل الدخول.'
-            : 'Unable to sign in.',
+          : isArabic ? 'تعذر تسجيل الدخول.' : 'Unable to sign in.',
       )
     } finally {
       setLoading(false)
@@ -60,31 +60,22 @@ function Login({ language, onLoginSuccess, onLanguageChange }: LoginProps) {
   }
 
   return (
-    <div
-      className={`login-page ${isArabic ? 'rtl' : 'ltr'}`}
-      dir={isArabic ? 'rtl' : 'ltr'}
-    >
+    <div className={`login-page ${isArabic ? 'rtl' : 'ltr'}`} dir={isArabic ? 'rtl' : 'ltr'}>
       <div className="login-card">
         <div className="login-brand">
           <div className="login-brand-title">
             <span>Smart</span>
             <strong>AVL</strong>
           </div>
-          <div className="login-brand-subtitle">
-            GPS System &amp; GIS Solution
-          </div>
+          <div className="login-brand-subtitle">GPS System &amp; GIS Solution</div>
         </div>
 
         <p className="login-tagline">
-          {isArabic
-            ? 'سجّل الدخول للوصول إلى حسابك'
-            : 'Sign in to your account to continue'}
+          {isArabic ? 'سجّل الدخول للوصول إلى حسابك' : 'Sign in to your account to continue'}
         </p>
 
         <form className="login-form" onSubmit={handleSubmit}>
-          <label htmlFor="login-username">
-            {isArabic ? 'اسم المستخدم' : 'User Name'}
-          </label>
+          <label htmlFor="login-username">{isArabic ? 'اسم المستخدم' : 'User Name'}</label>
           <input
             id="login-username"
             type="text"
@@ -96,9 +87,7 @@ function Login({ language, onLoginSuccess, onLanguageChange }: LoginProps) {
             placeholder={isArabic ? 'اسم المستخدم' : 'User Name'}
           />
 
-          <label htmlFor="login-password">
-            {isArabic ? 'كلمة المرور' : 'Password'}
-          </label>
+          <label htmlFor="login-password">{isArabic ? 'كلمة المرور' : 'Password'}</label>
           <input
             id="login-password"
             type="password"
@@ -132,12 +121,8 @@ function Login({ language, onLoginSuccess, onLanguageChange }: LoginProps) {
 
           <button type="submit" className="login-submit" disabled={loading}>
             {loading
-              ? isArabic
-                ? 'جاري تسجيل الدخول...'
-                : 'Signing in...'
-              : isArabic
-                ? 'دخول'
-                : 'Sign In'}
+              ? isArabic ? 'جاري تسجيل الدخول...' : 'Signing in...'
+              : isArabic ? 'دخول' : 'Sign In'}
           </button>
         </form>
 
@@ -150,10 +135,7 @@ function Login({ language, onLoginSuccess, onLanguageChange }: LoginProps) {
         </button>
 
         <div className="login-language">
-          <select
-            value={language}
-            onChange={(event) => onLanguageChange(event.target.value as Language)}
-          >
+          <select value={language} onChange={(event) => onLanguageChange(event.target.value as Language)}>
             <option value="ar">العربية</option>
             <option value="en">English</option>
           </select>
@@ -174,51 +156,71 @@ function Login({ language, onLoginSuccess, onLanguageChange }: LoginProps) {
             </svg>
           </span>
         </div>
+
+        <a href="/driver" className="login-driver-link">
+          {isArabic ? 'دخول السائق (تطبيق السائق)' : 'Driver Login (Driver App)'}
+          <span>{'\u2192'}</span>
+        </a>
       </div>
 
       <div className="login-illustration">
-        <svg viewBox="0 0 620 420" className="login-illustration-svg">
-          <circle cx="470" cy="80" r="130" fill="var(--accent-soft)" />
-          <circle cx="90" cy="110" r="14" fill="var(--accent-soft)" />
-          <circle cx="310" cy="210" r="150" fill="none" stroke="var(--line)" strokeWidth="1.5" />
-          <circle cx="310" cy="210" r="100" fill="none" stroke="var(--line)" strokeWidth="1.5" />
+        {media.url && media.type === 'image' && (
+          <img src={media.url} alt="Login" className="login-illustration-media" />
+        )}
 
-          <g fontFamily="Cairo, sans-serif" fontSize="13" fill="var(--muted)" textAnchor="middle">
-            <circle cx="380" cy="95" r="22" fill="var(--accent)" />
-            <text x="380" y="60" fontWeight="700" fill="var(--ink)">GPS</text>
+        {media.url && media.type === 'video' && (
+          <video
+            src={media.url}
+            className="login-illustration-media"
+            autoPlay
+            loop
+            muted
+            playsInline
+          />
+        )}
 
-            <circle cx="465" cy="180" r="28" fill="var(--accent)" />
-            <text x="465" y="130" fontWeight="700" fill="var(--ink)">Telematics</text>
-            <text x="465" y="146">Telemetry</text>
+        {!media.url && (
+          <svg viewBox="0 0 620 420" className="login-illustration-svg">
+            <circle cx="470" cy="80" r="130" fill="var(--accent-soft)" />
+            <circle cx="90" cy="110" r="14" fill="var(--accent-soft)" />
+            <circle cx="310" cy="210" r="150" fill="none" stroke="var(--line)" strokeWidth="1.5" />
+            <circle cx="310" cy="210" r="100" fill="none" stroke="var(--line)" strokeWidth="1.5" />
 
-            <circle cx="240" cy="150" r="18" fill="var(--accent)" />
-            <text x="210" y="110" fontWeight="700" fill="var(--ink)">Bluetooth</text>
-            <text x="210" y="126">Wi-Fi / LTE</text>
+            <g fontFamily="Cairo, sans-serif" fontSize="13" fill="var(--muted)" textAnchor="middle">
+              <circle cx="380" cy="95" r="22" fill="var(--accent)" />
+              <text x="380" y="60" fontWeight="700" fill="var(--ink)">GPS</text>
 
-            <circle cx="195" cy="250" r="20" fill="var(--accent)" />
-            <text x="165" y="295" fontWeight="700" fill="var(--ink)">Engine Data</text>
-            <text x="165" y="311">Chassis Data</text>
+              <circle cx="465" cy="180" r="28" fill="var(--accent)" />
+              <text x="465" y="130" fontWeight="700" fill="var(--ink)">Telematics</text>
+              <text x="465" y="146">Telemetry</text>
 
-            <circle cx="310" cy="210" r="18" fill="var(--ink)" />
-            <text x="310" y="248" fontWeight="700" fill="var(--ink)">OEM</text>
+              <circle cx="240" cy="150" r="18" fill="var(--accent)" />
+              <text x="210" y="110" fontWeight="700" fill="var(--ink)">Bluetooth</text>
+              <text x="210" y="126">Wi-Fi / LTE</text>
 
-            <circle cx="425" cy="270" r="13" fill="var(--accent)" />
-            <text x="425" y="298" fontWeight="700" fill="var(--ink)">PGN</text>
-          </g>
+              <circle cx="195" cy="250" r="20" fill="var(--accent)" />
+              <text x="165" y="295" fontWeight="700" fill="var(--ink)">Engine Data</text>
+              <text x="165" y="311">Chassis Data</text>
 
-          <path d="M170 360 L560 360 L520 320 L210 320 Z" fill="var(--accent)" opacity=".12" />
-          <g transform="translate(180,270)">
-            <rect x="0" y="40" width="300" height="60" rx="20" fill="var(--panel)" stroke="var(--line)" />
-            <circle cx="55" cy="102" r="20" fill="var(--ink)" />
-            <circle cx="245" cy="102" r="20" fill="var(--ink)" />
-            <rect x="30" y="8" width="240" height="38" rx="14" fill="var(--panel)" stroke="var(--line)" />
-          </g>
-        </svg>
+              <circle cx="310" cy="210" r="18" fill="var(--ink)" />
+              <text x="310" y="248" fontWeight="700" fill="var(--ink)">OEM</text>
+
+              <circle cx="425" cy="270" r="13" fill="var(--accent)" />
+              <text x="425" y="298" fontWeight="700" fill="var(--ink)">PGN</text>
+            </g>
+
+            <path d="M170 360 L560 360 L520 320 L210 320 Z" fill="var(--accent)" opacity=".12" />
+            <g transform="translate(180,270)">
+              <rect x="0" y="40" width="300" height="60" rx="20" fill="var(--panel)" stroke="var(--line)" />
+              <circle cx="55" cy="102" r="20" fill="var(--ink)" />
+              <circle cx="245" cy="102" r="20" fill="var(--ink)" />
+              <rect x="30" y="8" width="240" height="38" rx="14" fill="var(--panel)" stroke="var(--line)" />
+            </g>
+          </svg>
+        )}
 
         <p className="login-illustration-caption">
-          {isArabic
-            ? 'مراقبة الأسطول وتتبعه في الوقت الحقيقي'
-            : 'Real-time fleet monitoring and tracking'}
+          {isArabic ? 'مراقبة الأسطول وتتبعه في الوقت الحقيقي' : 'Real-time fleet monitoring and tracking'}
         </p>
       </div>
     </div>

@@ -346,6 +346,40 @@ namespace Tracking.Storage.Migrations
                     b.ToTable("PeripheralTypes");
                 });
 
+            modelBuilder.Entity("Tracking.Storage.Entities.PermissionEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.ToTable("Permissions");
+                });
+
             modelBuilder.Entity("Tracking.Storage.Entities.PositionEntity", b =>
                 {
                     b.Property<long>("Id")
@@ -382,6 +416,51 @@ namespace Tracking.Storage.Migrations
                     b.HasIndex("DeviceId");
 
                     b.ToTable("Positions");
+                });
+
+            modelBuilder.Entity("Tracking.Storage.Entities.RoleEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsSystemRole")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Roles");
+                });
+
+            modelBuilder.Entity("Tracking.Storage.Entities.RolePermissionEntity", b =>
+                {
+                    b.Property<long>("RoleId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("PermissionId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("RoleId", "PermissionId");
+
+                    b.HasIndex("PermissionId");
+
+                    b.ToTable("RolePermissions");
                 });
 
             modelBuilder.Entity("Tracking.Storage.Entities.TaskEntity", b =>
@@ -547,6 +626,7 @@ namespace Tracking.Storage.Migrations
 
                     b.Property<string>("DisplayName")
                         .IsRequired()
+                        .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsActive")
@@ -558,15 +638,35 @@ namespace Tracking.Storage.Migrations
 
                     b.Property<string>("Role")
                         .IsRequired()
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Username")
                         .IsRequired()
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Username")
+                        .IsUnique();
+
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("Tracking.Storage.Entities.UserRoleEntity", b =>
+                {
+                    b.Property<long>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("RoleId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("UserId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("UserRoles");
                 });
 
             modelBuilder.Entity("Tracking.Storage.Entities.VehicleEntity", b =>
@@ -691,6 +791,25 @@ namespace Tracking.Storage.Migrations
                     b.Navigation("Device");
                 });
 
+            modelBuilder.Entity("Tracking.Storage.Entities.RolePermissionEntity", b =>
+                {
+                    b.HasOne("Tracking.Storage.Entities.PermissionEntity", "Permission")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("PermissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Tracking.Storage.Entities.RoleEntity", "Role")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Permission");
+
+                    b.Navigation("Role");
+                });
+
             modelBuilder.Entity("Tracking.Storage.Entities.TaskEntity", b =>
                 {
                     b.HasOne("Tracking.Storage.Entities.TripEntity", "Trip")
@@ -729,6 +848,25 @@ namespace Tracking.Storage.Migrations
                     b.Navigation("Vehicle");
                 });
 
+            modelBuilder.Entity("Tracking.Storage.Entities.UserRoleEntity", b =>
+                {
+                    b.HasOne("Tracking.Storage.Entities.RoleEntity", "Role")
+                        .WithMany("UserRoles")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Tracking.Storage.Entities.UserEntity", "User")
+                        .WithMany("UserRoles")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Role");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Tracking.Storage.Entities.VehicleEntity", b =>
                 {
                     b.HasOne("Tracking.Storage.Entities.DeviceEntity", "Device")
@@ -756,9 +894,26 @@ namespace Tracking.Storage.Migrations
                     b.Navigation("Peripherals");
                 });
 
+            modelBuilder.Entity("Tracking.Storage.Entities.PermissionEntity", b =>
+                {
+                    b.Navigation("RolePermissions");
+                });
+
+            modelBuilder.Entity("Tracking.Storage.Entities.RoleEntity", b =>
+                {
+                    b.Navigation("RolePermissions");
+
+                    b.Navigation("UserRoles");
+                });
+
             modelBuilder.Entity("Tracking.Storage.Entities.TripEntity", b =>
                 {
                     b.Navigation("Tasks");
+                });
+
+            modelBuilder.Entity("Tracking.Storage.Entities.UserEntity", b =>
+                {
+                    b.Navigation("UserRoles");
                 });
 #pragma warning restore 612, 618
         }

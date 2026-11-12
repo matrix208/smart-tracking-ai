@@ -26,6 +26,18 @@ public sealed class TrackingDbContext : DbContext
     public DbSet<UserEntity> Users =>
         Set<UserEntity>();
 
+    public DbSet<RoleEntity> Roles =>
+        Set<RoleEntity>();
+
+    public DbSet<PermissionEntity> Permissions =>
+        Set<PermissionEntity>();
+
+    public DbSet<UserRoleEntity> UserRoles =>
+        Set<UserRoleEntity>();
+
+    public DbSet<RolePermissionEntity> RolePermissions =>
+        Set<RolePermissionEntity>();
+
     public DbSet<DeviceModelEntity> DeviceModels => Set<DeviceModelEntity>();
 
     public DbSet<PeripheralTypeEntity> PeripheralTypes => Set<PeripheralTypeEntity>();
@@ -305,5 +317,111 @@ public sealed class TrackingDbContext : DbContext
 
         entity.Property(x => x.Signal);
     });
+
+        // ========================================================
+        // RBAC — Users / Roles / Permissions
+        // ========================================================
+
+        modelBuilder.Entity<UserEntity>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Username)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(x => x.PasswordHash)
+                .IsRequired();
+
+            entity.Property(x => x.DisplayName)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(x => x.Role)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.HasIndex(x => x.Username)
+                .IsUnique();
+        });
+
+        modelBuilder.Entity<RoleEntity>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Name)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(x => x.Description)
+                .HasMaxLength(500)
+                .IsRequired();
+
+            entity.HasIndex(x => x.Name)
+                .IsUnique();
+        });
+
+        modelBuilder.Entity<PermissionEntity>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Key)
+                .HasMaxLength(150)
+                .IsRequired();
+
+            entity.Property(x => x.Name)
+                .HasMaxLength(150)
+                .IsRequired();
+
+            entity.Property(x => x.Description)
+                .HasMaxLength(500)
+                .IsRequired();
+
+            entity.Property(x => x.Category)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.HasIndex(x => x.Key)
+                .IsUnique();
+        });
+
+        modelBuilder.Entity<UserRoleEntity>(entity =>
+        {
+            entity.HasKey(x => new
+            {
+                x.UserId,
+                x.RoleId
+            });
+
+            entity.HasOne(x => x.User)
+                .WithMany(x => x.UserRoles)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.Role)
+                .WithMany(x => x.UserRoles)
+                .HasForeignKey(x => x.RoleId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<RolePermissionEntity>(entity =>
+        {
+            entity.HasKey(x => new
+            {
+                x.RoleId,
+                x.PermissionId
+            });
+
+            entity.HasOne(x => x.Role)
+                .WithMany(x => x.RolePermissions)
+                .HasForeignKey(x => x.RoleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.Permission)
+                .WithMany(x => x.RolePermissions)
+                .HasForeignKey(x => x.PermissionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
     }
 }

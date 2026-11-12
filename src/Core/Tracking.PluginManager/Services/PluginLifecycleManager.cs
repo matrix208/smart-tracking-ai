@@ -6,20 +6,14 @@ using Tracking.SDK.Interfaces;
 namespace Tracking.PluginManager.Services;
 
 /// <summary>
-/// Orchestrates the full plugin lifecycle:
-///
-///   Install -> Discover -> Validate -> Load -> Register -> Enable/Disable -> Uninstall
-///
-/// InstalledPluginStore stays the on-disk source of truth.
-/// ProtocolPluginManager stays the in-memory runtime registry.
-/// This class is the only thing that should coordinate both.
+/// Coordinates installation, discovery, validation, loading,
+/// registration, enabling, disabling and uninstallation.
 /// </summary>
 public sealed class PluginLifecycleManager
 {
     private readonly InstalledPluginStore _store;
     private readonly ProtocolPluginManager _pluginManager;
     private readonly IPluginInstaller _installer;
-
     private readonly ManifestReader _manifestReader = new();
     private readonly AssemblyPluginLoader _assemblyLoader = new();
 
@@ -32,15 +26,6 @@ public sealed class PluginLifecycleManager
         _pluginManager = pluginManager;
         _installer = installer;
     }
-
-    // =========================================================
-    // INSTALL
-    //
-    // Verifies signature + extracts + validates manifest +
-    // writes to InstalledPluginStore (via IPluginInstaller),
-    // then immediately runs Discover -> Validate -> Load ->
-    // Register so the plugin is live without a restart.
-    // =========================================================
 
     public async Task<PluginLifecycleResult> InstallAsync(
         string packageFilePath,
@@ -55,12 +40,6 @@ public sealed class PluginLifecycleManager
             cancellationToken);
     }
 
-    // =========================================================
-    // DISCOVER
-    //
-    // Reads what InstalledPluginStore currently has on disk.
-    // =========================================================
-
     public InstalledPluginRecord? Discover(string pluginId)
     {
         return _store.Get(pluginId);
@@ -71,16 +50,6 @@ public sealed class PluginLifecycleManager
         return _store.GetAll();
     }
 
-    // =========================================================
-    // VALIDATE
-    //
-    // ManifestReader re-reads Manifest/manifest.json from the
-    // installed folder and enforces Id/Assembly/EntryPoint are
-    // present and that the assembly file actually exists on disk.
-    // This is a second, independent validation pass distinct
-    // from ManifestValidator used during Install.
-    // =========================================================
-
     private async Task<PluginPackage> ValidateAsync(
         string pluginFolder,
         CancellationToken cancellationToken)
@@ -90,24 +59,10 @@ public sealed class PluginLifecycleManager
             cancellationToken);
     }
 
-    // =========================================================
-    // LOAD
-    //
-    // Loads the assembly into an isolated AssemblyLoadContext
-    // and instantiates the plugin's entry point type.
-    // =========================================================
-
     private IProtocolPlugin Load(PluginPackage package)
     {
         return _assemblyLoader.Load(package);
     }
-
-    // =========================================================
-    // REGISTER
-    //
-    // Combines Discover + Validate + Load + Register for a
-    // single already-installed plugin id.
-    // =========================================================
 
     public async Task<PluginLifecycleResult> LoadAndRegisterAsync(
         string pluginId,
@@ -117,13 +72,23 @@ public sealed class PluginLifecycleManager
             ?? throw new InvalidOperationException(
                 $"Plugin '{pluginId}' is not installed.");
 
+        cancellationToken.ThrowIfCancellationRequested();
+
+        // Verify the retained signed archive and compare every
+        // installed payload file before reading or loading the plugin.
+        _installer.VerifyInstalled(record.Directory);
+
         var package = await ValidateAsync(
             record.Directory,
             cancellationToken);
 
+        cancellationToken.ThrowIfCancellationRequested();
+
         var plugin = Load(package);
 
-        _pluginManager.Register(plugin, record.Enabled);
+        _pluginManager.Register(
+            plugin,
+            record.Enabled);
 
         return new PluginLifecycleResult
         {
@@ -134,11 +99,6 @@ public sealed class PluginLifecycleManager
         };
     }
 
-    /// <summary>
-    /// Runs Discover -> Validate -> Load -> Register for every
-    /// enabled plugin currently in InstalledPluginStore.
-    /// Intended for use at runtime startup.
-    /// </summary>
     public async Task<IReadOnlyList<PluginLifecycleResult>> LoadAllEnabledAsync(
         CancellationToken cancellationToken = default)
     {
@@ -146,6 +106,8 @@ public sealed class PluginLifecycleManager
 
         foreach (var record in DiscoverAll().Where(x => x.Enabled))
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 results.Add(
@@ -163,65 +125,50 @@ public sealed class PluginLifecycleManager
         return results;
     }
 
-    // =========================================================
-    // ENABLE
-    //
-    // Persists Enabled=true in InstalledPluginStore. If the
-    // plugin is not currently loaded in memory (e.g. server
-    // just started with it disabled), loads and registers it
-    // now. Otherwise flips the in-memory flag on the already
-    // registered instance.
-    // =========================================================
-
     public async Task<bool> EnableAsync(
         string pluginId,
         CancellationToken cancellationToken = default)
     {
-        if (!_store.SetEnabled(pluginId, true))
+        var record = Discover(pluginId);
+
+        if (record is null)
             return false;
 
         if (_pluginManager.Get(pluginId) is null)
         {
-            await LoadAndRegisterAsync(pluginId, cancellationToken);
+            await LoadAndRegisterAsync(
+                pluginId,
+                cancellationToken);
         }
-        else
-        {
+
+        if (!_store.SetEnabled(pluginId, true))
+            return false;
+
+        if (_pluginManager.Get(pluginId) is not null)
             _pluginManager.Enable(pluginId);
-        }
 
         return true;
     }
-
-    // =========================================================
-    // DISABLE
-    //
-    // Persists Enabled=false and flips the in-memory flag.
-    // The plugin's assembly stays loaded in memory (no unload
-    // support yet) but ProtocolPluginManager.Find() will skip
-    // it during protocol detection because it is disabled.
-    // =========================================================
 
     public bool Disable(string pluginId)
     {
         var persisted = _store.SetEnabled(pluginId, false);
 
+        if (!persisted)
+            return false;
+
         _pluginManager.Disable(pluginId);
-
-        return persisted;
+        return true;
     }
-
-    // =========================================================
-    // UNINSTALL
-    //
-    // Removes the plugin from the in-memory registry AND from
-    // disk via IPluginInstaller.Uninstall (-> InstalledPluginStore.Remove).
-    // =========================================================
 
     public bool Uninstall(string pluginId)
     {
-        _pluginManager.Unregister(pluginId);
+        var removed = _installer.Uninstall(pluginId);
 
-        return _installer.Uninstall(pluginId);
+        if (removed)
+            _pluginManager.Unregister(pluginId);
+
+        return removed;
     }
 }
 

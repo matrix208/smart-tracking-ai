@@ -6,14 +6,14 @@ public interface IPluginInstaller
         string packageFilePath,
         CancellationToken cancellationToken = default);
 
+    void VerifyInstalled(string installedDirectory);
+
     bool Uninstall(string pluginId);
 }
 
 public sealed class PluginInstallResult
 {
     public required string PluginId { get; init; }
-
     public required string Name { get; init; }
-
     public required string Version { get; init; }
 }

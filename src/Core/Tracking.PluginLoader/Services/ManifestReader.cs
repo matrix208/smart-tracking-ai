@@ -57,17 +57,9 @@ public sealed class ManifestReader
                 $"Plugin '{manifest.Id}' does not define an entry point.");
         }
 
-        var assemblyPath = Path.GetFullPath(
-            Path.Combine(
-                pluginFolder,
-                manifest.Assembly));
-
-        if (!File.Exists(assemblyPath))
-        {
-            throw new FileNotFoundException(
-                $"Plugin assembly '{manifest.Assembly}' was not found.",
-                assemblyPath);
-        }
+        var assemblyPath = ResolveAssemblyPath(
+            pluginFolder,
+            manifest.Assembly);
 
         Console.WriteLine(
             $"Manifest.Id         = '{manifest.Id}'");
@@ -96,6 +88,68 @@ public sealed class ManifestReader
             Manifest = manifest,
             AssemblyPath = assemblyPath
         };
+    }
+
+
+    private static string ResolveAssemblyPath(
+        string pluginFolder,
+        string assembly)
+    {
+        if (string.IsNullOrWhiteSpace(assembly) ||
+            Path.IsPathRooted(assembly) ||
+            assembly.Contains('\\') ||
+            assembly.Contains(':') ||
+            assembly.Contains('\0'))
+            throw new InvalidDataException(
+                "Plugin assembly path is unsafe.");
+
+        var segments = assembly.Split('/');
+
+        if (segments.Any(s =>
+                string.IsNullOrWhiteSpace(s) || s is "." or ".."))
+            throw new InvalidDataException(
+                "Plugin assembly path contains an unsafe segment.");
+
+        if (!assembly.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException(
+                "Plugin assembly must be a DLL.");
+
+        string root = Path.GetFullPath(pluginFolder);
+        string prefix = root.TrimEnd(
+            Path.DirectorySeparatorChar,
+            Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+
+        string fullPath = Path.GetFullPath(
+            Path.Combine(root, Path.Combine(segments)));
+
+        var comparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+
+        if (!fullPath.StartsWith(prefix, comparison))
+            throw new InvalidDataException(
+                "Plugin assembly escapes its plugin directory.");
+
+        string current = root;
+
+        foreach (string segment in segments)
+        {
+            current = Path.Combine(current, segment);
+
+            if (!File.Exists(current) && !Directory.Exists(current))
+                break;
+
+            if ((File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
+                throw new InvalidDataException(
+                    "Plugin assembly path contains a symbolic link or reparse point.");
+        }
+
+        if (!File.Exists(fullPath))
+            throw new FileNotFoundException(
+                $"Plugin assembly '{assembly}' was not found.",
+                fullPath);
+
+        return fullPath;
     }
 
     private static string? ResolveManifestPath(string pluginFolder)

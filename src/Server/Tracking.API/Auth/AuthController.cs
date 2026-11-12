@@ -31,6 +31,10 @@ public sealed class AuthController : ControllerBase
         CancellationToken cancellationToken)
     {
         var user = await _db.Users
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                    .ThenInclude(r => r.RolePermissions)
+                        .ThenInclude(rp => rp.Permission)
             .SingleOrDefaultAsync(
                 x => x.Username == request.Username,
                 cancellationToken);
@@ -47,7 +51,24 @@ public sealed class AuthController : ControllerBase
             });
         }
 
-        var token = _jwtTokenService.CreateToken(user);
+        var roleNames = user.UserRoles
+            .Select(ur => ur.Role.Name)
+            .Distinct()
+            .ToList();
+
+        if (roleNames.Count == 0)
+        {
+            // Fallback for users not yet linked via UserRoles.
+            roleNames.Add(user.Role);
+        }
+
+        var permissionKeys = user.UserRoles
+            .SelectMany(ur => ur.Role.RolePermissions)
+            .Select(rp => rp.Permission.Key)
+            .Distinct()
+            .ToList();
+
+        var token = _jwtTokenService.CreateToken(user, roleNames, permissionKeys);
 
         return Ok(new
         {
@@ -59,7 +80,9 @@ public sealed class AuthController : ControllerBase
                 id = user.Id,
                 username = user.Username,
                 displayName = user.DisplayName,
-                role = user.Role
+                role = user.Role,
+                roles = roleNames,
+                permissions = permissionKeys
             }
         });
     }

@@ -75,14 +75,9 @@ public static class RuntimeServiceCollectionExtensions
                         publicKeyPath));
             }
 
-            var requireSignature = configuration.GetValue<bool>(
-                "PackageSecurity:RequireSignature",
-                defaultValue: true);
-
             return new Tracking.Plugin.Runtime.Installer.PluginInstaller(
                 installedStore,
-                publicKeyPath,
-                requireSignature);
+                publicKeyPath);
         });
 
         // =====================================================

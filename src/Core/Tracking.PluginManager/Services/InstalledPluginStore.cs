@@ -15,6 +15,11 @@ public sealed class InstalledPluginStore
 
     public InstalledPluginStore(string root)
     {
+        if (string.IsNullOrWhiteSpace(root))
+            throw new ArgumentException(
+                "Plugin storage root is required.",
+                nameof(root));
+
         _root = Path.GetFullPath(root);
         Directory.CreateDirectory(_root);
     }
@@ -23,11 +28,12 @@ public sealed class InstalledPluginStore
 
     public bool IsInstalled(string pluginId)
     {
-        var directory = GetPluginDirectory(pluginId);
-        var manifestPath = GetManifestPath(directory);
-
-        return Directory.Exists(directory) &&
-               manifestPath is not null;
+        lock (_sync)
+        {
+            var directory = GetPluginDirectory(pluginId);
+            return Directory.Exists(directory) &&
+                   GetManifestPath(directory) is not null;
+        }
     }
 
     public IReadOnlyList<InstalledPluginRecord> GetAll()
@@ -46,36 +52,52 @@ public sealed class InstalledPluginStore
                 if (manifestPath is null)
                     continue;
 
+                InstalledPluginManifest? manifest;
+
                 try
                 {
-                    var json = File.ReadAllText(manifestPath);
-
-                    var manifest =
+                    manifest =
                         JsonSerializer.Deserialize<InstalledPluginManifest>(
-                            json,
+                            File.ReadAllText(manifestPath),
                             JsonOptions);
-
-                    if (manifest is null ||
-                        string.IsNullOrWhiteSpace(manifest.Id))
-                    {
-                        continue;
-                    }
-
-                    result.Add(new InstalledPluginRecord
-                    {
-                        Id = manifest.Id,
-                        Name = manifest.Name,
-                        Version = manifest.Version,
-                        Directory = directory,
-                        ManifestPath = manifestPath,
-                        Enabled = manifest.Enabled,
-                        Assembly = manifest.Assembly,
-                        EntryPoint = manifest.EntryPoint
-                    });
                 }
-                catch
+                catch (JsonException)
                 {
+                    continue;
                 }
+
+                if (manifest is null ||
+                    string.IsNullOrWhiteSpace(manifest.Id))
+                {
+                    continue;
+                }
+
+                var expectedDirectory =
+                    GetPluginDirectory(manifest.Id);
+
+                if (!string.Equals(
+                    Path.GetFullPath(directory),
+                    expectedDirectory,
+                    OperatingSystem.IsWindows()
+                        ? StringComparison.OrdinalIgnoreCase
+                        : StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                result.Add(new InstalledPluginRecord
+                {
+                    Id = manifest.Id,
+                    Name = manifest.Name,
+                    Version = manifest.Version,
+                    Directory = directory,
+                    ManifestPath = manifestPath,
+                    Enabled = ReadEnabled(
+                        manifest.Id,
+                        manifest.Enabled),
+                    Assembly = manifest.Assembly,
+                    EntryPoint = manifest.EntryPoint
+                });
             }
 
             return result
@@ -86,12 +108,16 @@ public sealed class InstalledPluginStore
 
     public InstalledPluginRecord? Get(string pluginId)
     {
-        return GetAll()
-            .FirstOrDefault(x =>
+        lock (_sync)
+        {
+            var safeId = ValidatePluginId(pluginId);
+
+            return GetAll().FirstOrDefault(x =>
                 string.Equals(
                     x.Id,
-                    pluginId,
+                    safeId,
                     StringComparison.OrdinalIgnoreCase));
+        }
     }
 
     public bool SetEnabled(string pluginId, bool enabled)
@@ -99,29 +125,11 @@ public sealed class InstalledPluginStore
         lock (_sync)
         {
             var directory = GetPluginDirectory(pluginId);
-            var manifestPath = GetManifestPath(directory);
 
-            if (manifestPath is null)
+            if (GetManifestPath(directory) is null)
                 return false;
 
-            var json = File.ReadAllText(manifestPath);
-
-            var manifest =
-                JsonSerializer.Deserialize<InstalledPluginManifest>(
-                    json,
-                    JsonOptions);
-
-            if (manifest is null)
-                return false;
-
-            manifest.Enabled = enabled;
-
-            File.WriteAllText(
-                manifestPath,
-                JsonSerializer.Serialize(
-                    manifest,
-                    JsonOptions));
-
+            WriteEnabled(pluginId, enabled);
             return true;
         }
     }
@@ -135,9 +143,12 @@ public sealed class InstalledPluginStore
             if (!Directory.Exists(directory))
                 return false;
 
-            Directory.Delete(
-                directory,
-                recursive: true);
+            Directory.Delete(directory, recursive: true);
+
+            var statePath = GetStatePath(pluginId);
+
+            if (File.Exists(statePath))
+                File.Delete(statePath);
 
             return true;
         }
@@ -155,100 +166,301 @@ public sealed class InstalledPluginStore
                     $"Plugin source directory does not exist: {sourceDirectory}");
             }
 
-            var targetDirectory =
-                GetPluginDirectory(pluginId);
+            var safeId = ValidatePluginId(pluginId);
+            var targetDirectory = GetPluginDirectory(safeId);
 
-            var previous = Get(pluginId);
+            var previous = Get(safeId);
+            bool? previousEnabled = previous?.Enabled;
 
-            var previousEnabled =
-                previous?.Enabled ?? true;
+            var stagingDirectory = Path.Combine(
+                _root,
+                $".{safeId}.staging-{Guid.NewGuid():N}");
 
-            if (Directory.Exists(targetDirectory))
+            var backupDirectory = Path.Combine(
+                _root,
+                $".{safeId}.backup-{Guid.NewGuid():N}");
+
+            var statePath = GetStatePath(safeId);
+            var temporaryStatePath = statePath +
+                "." + Guid.NewGuid().ToString("N") + ".tmp";
+
+            bool previousMoved = false;
+            bool newInstallationMoved = false;
+
+            try
             {
-                Directory.Delete(
-                    targetDirectory,
-                    recursive: true);
-            }
+                Directory.CreateDirectory(stagingDirectory);
 
-            Directory.CreateDirectory(targetDirectory);
+                CopyDirectory(
+                    sourceDirectory,
+                    stagingDirectory);
 
-            CopyDirectory(
-                sourceDirectory,
-                targetDirectory);
+                var manifestPath = GetManifestPath(stagingDirectory);
 
-            var manifestPath =
-                GetManifestPath(targetDirectory);
-
-            if (manifestPath is null)
-            {
-                var rootManifestPath =
-                    Path.Combine(
-                        targetDirectory,
-                        "manifest.json");
-
-                if (File.Exists(rootManifestPath))
+                if (manifestPath is null)
                 {
-                    var manifestDirectory =
-                        Path.Combine(
-                            targetDirectory,
-                            "Manifest");
+                    throw new InvalidOperationException(
+                        $"Plugin '{safeId}' does not contain a valid manifest.");
+                }
 
-                    Directory.CreateDirectory(
-                        manifestDirectory);
+                var manifest =
+                    JsonSerializer.Deserialize<InstalledPluginManifest>(
+                        File.ReadAllText(manifestPath),
+                        JsonOptions)
+                    ?? throw new InvalidDataException(
+                        "Invalid plugin manifest.");
 
-                    manifestPath =
-                        Path.Combine(
-                            manifestDirectory,
-                            "manifest.json");
+                if (string.IsNullOrWhiteSpace(manifest.Id) ||
+                    !string.Equals(
+                        manifest.Id,
+                        safeId,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidDataException(
+                        "Package manifest id does not match the installation id.");
+                }
 
-                    File.Move(
-                        rootManifestPath,
-                        manifestPath);
+                // Preserve the previous enabled state during upgrades.
+                bool enabledState =
+                    previousEnabled ?? manifest.Enabled;
+
+                // Prepare the state file before replacing the installation.
+                var stateDirectory = Path.GetDirectoryName(statePath)!;
+                Directory.CreateDirectory(stateDirectory);
+
+                File.WriteAllText(
+                    temporaryStatePath,
+                    JsonSerializer.Serialize(
+                        new PluginState { Enabled = enabledState },
+                        JsonOptions));
+
+                // Move the existing installation to a backup.
+                if (Directory.Exists(targetDirectory))
+                {
+                    Directory.Move(
+                        targetDirectory,
+                        backupDirectory);
+
+                    previousMoved = true;
+                }
+
+                // Activate the prepared installation.
+                Directory.Move(
+                    stagingDirectory,
+                    targetDirectory);
+
+                newInstallationMoved = true;
+
+                // Commit the external state atomically.
+                File.Move(
+                    temporaryStatePath,
+                    statePath,
+                    overwrite: true);
+
+                // Installation is committed. Backup cleanup is best-effort.
+                if (previousMoved)
+                {
+                    try
+                    {
+                        Directory.Delete(
+                            backupDirectory,
+                            recursive: true);
+
+                        previousMoved = false;
+                    }
+                    catch
+                    {
+                        // Keep the backup for manual recovery.
+                    }
                 }
             }
-
-            if (manifestPath is null ||
-                !File.Exists(manifestPath))
+            catch
             {
-                throw new InvalidOperationException(
-                    $"Installed plugin '{pluginId}' does not contain Manifest/manifest.json.");
+                // Remove the new installation if the transaction failed.
+                if (newInstallationMoved &&
+                    Directory.Exists(targetDirectory))
+                {
+                    try
+                    {
+                        Directory.Delete(
+                            targetDirectory,
+                            recursive: true);
+
+                        newInstallationMoved = false;
+                    }
+                    catch
+                    {
+                        // Preserve the backup if rollback cannot complete.
+                    }
+                }
+
+                // Restore the previous installation.
+                if (previousMoved &&
+                    Directory.Exists(backupDirectory) &&
+                    !Directory.Exists(targetDirectory))
+                {
+                    try
+                    {
+                        Directory.Move(
+                            backupDirectory,
+                            targetDirectory);
+
+                        previousMoved = false;
+                    }
+                    catch
+                    {
+                        // Preserve the backup for manual recovery.
+                    }
+                }
+
+                throw;
             }
+            finally
+            {
+                if (Directory.Exists(stagingDirectory))
+                {
+                    try
+                    {
+                        Directory.Delete(
+                            stagingDirectory,
+                            recursive: true);
+                    }
+                    catch
+                    {
+                        // Do not hide the original result.
+                    }
+                }
 
-            var json = File.ReadAllText(manifestPath);
-
-            var manifest =
-                JsonSerializer.Deserialize<InstalledPluginManifest>(
-                    json,
-                    JsonOptions)
-                ?? throw new InvalidDataException(
-                    "Invalid plugin manifest.");
-
-            manifest.Id = pluginId;
-            manifest.Enabled = previousEnabled;
-
-            File.WriteAllText(
-                manifestPath,
-                JsonSerializer.Serialize(
-                    manifest,
-                    JsonOptions));
+                if (File.Exists(temporaryStatePath))
+                {
+                    try
+                    {
+                        File.Delete(temporaryStatePath);
+                    }
+                    catch
+                    {
+                        // Temporary state can be cleaned up later.
+                    }
+                }
+            }
         }
+    }
+
+    private bool ReadEnabled(
+        string pluginId,
+        bool defaultValue)
+    {
+        var statePath = GetStatePath(pluginId);
+
+        if (!File.Exists(statePath))
+            return defaultValue;
+
+        try
+        {
+            var state = JsonSerializer.Deserialize<PluginState>(
+                File.ReadAllText(statePath),
+                JsonOptions);
+
+            return state?.Enabled ?? defaultValue;
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidDataException(
+                $"Plugin state file is invalid: {pluginId}",
+                ex);
+        }
+    }
+
+    private void WriteEnabled(
+        string pluginId,
+        bool enabled)
+    {
+        var stateDirectory = Path.Combine(_root, ".state");
+        Directory.CreateDirectory(stateDirectory);
+
+        var statePath = GetStatePath(pluginId);
+
+        var temporaryPath = statePath +
+            "." + Guid.NewGuid().ToString("N") + ".tmp";
+
+        try
+        {
+            File.WriteAllText(
+                temporaryPath,
+                JsonSerializer.Serialize(
+                    new PluginState { Enabled = enabled },
+                    JsonOptions));
+
+            File.Move(
+                temporaryPath,
+                statePath,
+                overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath))
+                File.Delete(temporaryPath);
+        }
+    }
+
+    private string GetStatePath(string pluginId)
+    {
+        var safeId = ValidatePluginId(pluginId);
+
+        return Path.Combine(
+            _root,
+            ".state",
+            safeId.ToLowerInvariant() + ".json");
+    }
+
+    private string GetPluginDirectory(string pluginId)
+    {
+        var safeId = ValidatePluginId(pluginId);
+
+        return Path.Combine(_root, safeId);
+    }
+
+    private static string ValidatePluginId(string pluginId)
+    {
+        if (string.IsNullOrWhiteSpace(pluginId))
+        {
+            throw new ArgumentException(
+                "Plugin id is required.",
+                nameof(pluginId));
+        }
+
+        var safeId = pluginId.Trim();
+
+        if (safeId.Length > 64 ||
+            safeId == "." ||
+            safeId == ".." ||
+            safeId[0] == '.' ||
+            safeId.Any(c =>
+                !(char.IsAsciiLetterOrDigit(c) ||
+                  c == '.' ||
+                  c == '_' ||
+                  c == '-')))
+        {
+            throw new InvalidOperationException(
+                "Invalid plugin id.");
+        }
+
+        return safeId;
     }
 
     private static string? GetManifestPath(string pluginDirectory)
     {
-        var canonical =
-            Path.Combine(
-                pluginDirectory,
-                "Manifest",
-                "manifest.json");
+        var canonical = Path.Combine(
+            pluginDirectory,
+            "Manifest",
+            "manifest.json");
 
         if (File.Exists(canonical))
             return canonical;
 
-        var legacy =
-            Path.Combine(
-                pluginDirectory,
-                "manifest.json");
+        var legacy = Path.Combine(
+            pluginDirectory,
+            "manifest.json");
 
         if (File.Exists(legacy))
             return legacy;
@@ -256,65 +468,35 @@ public sealed class InstalledPluginStore
         return null;
     }
 
-    private string GetPluginDirectory(string pluginId)
-    {
-        if (string.IsNullOrWhiteSpace(pluginId))
-            throw new ArgumentException(
-                "Plugin id is required.",
-                nameof(pluginId));
-
-        var safeId =
-            pluginId.Trim();
-
-        if (safeId.Contains(Path.DirectorySeparatorChar) ||
-            safeId.Contains(Path.AltDirectorySeparatorChar) ||
-            safeId.Contains(".."))
-        {
-            throw new InvalidOperationException(
-                "Invalid plugin id.");
-        }
-
-        return Path.Combine(
-            _root,
-            safeId);
-    }
-
     private static void CopyDirectory(
         string source,
         string destination)
     {
-        foreach (var directory in
-                 Directory.GetDirectories(
-                     source,
-                     "*",
-                     SearchOption.AllDirectories))
+        foreach (var directory in Directory.GetDirectories(
+            source,
+            "*",
+            SearchOption.AllDirectories))
         {
-            var relative =
-                Path.GetRelativePath(
-                    source,
-                    directory);
+            var relative = Path.GetRelativePath(
+                source,
+                directory);
 
             Directory.CreateDirectory(
-                Path.Combine(
-                    destination,
-                    relative));
+                Path.Combine(destination, relative));
         }
 
-        foreach (var file in
-                 Directory.GetFiles(
-                     source,
-                     "*",
-                     SearchOption.AllDirectories))
+        foreach (var file in Directory.GetFiles(
+            source,
+            "*",
+            SearchOption.AllDirectories))
         {
-            var relative =
-                Path.GetRelativePath(
-                    source,
-                    file);
+            var relative = Path.GetRelativePath(
+                source,
+                file);
 
-            var target =
-                Path.Combine(
-                    destination,
-                    relative);
+            var target = Path.Combine(
+                destination,
+                relative);
 
             Directory.CreateDirectory(
                 Path.GetDirectoryName(target)!);
@@ -322,8 +504,13 @@ public sealed class InstalledPluginStore
             File.Copy(
                 file,
                 target,
-                overwrite: true);
+                overwrite: false);
         }
+    }
+
+    private sealed class PluginState
+    {
+        public bool Enabled { get; set; } = true;
     }
 }
 

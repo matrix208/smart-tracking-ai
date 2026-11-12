@@ -8,6 +8,7 @@ public static class ManifestSerializer
     private static readonly JsonSerializerOptions Options = new()
     {
         WriteIndented = true,
+        PropertyNameCaseInsensitive = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 

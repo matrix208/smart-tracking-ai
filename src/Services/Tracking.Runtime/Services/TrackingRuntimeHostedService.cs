@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Tracking.Core.Services;
 using Tracking.Core.Workers;
 using Tracking.Network;
@@ -9,9 +8,7 @@ using Tracking.Network.Servers;
 using Tracking.Persistence.Channels;
 using Tracking.Persistence.Services;
 using Tracking.Pipeline;
-using Tracking.PluginManager.Configuration;
 using Tracking.PluginManager.Services;
-using Tracking.PluginLoader.Services;
 using Tracking.SDK.Enums;
 using Tracking.SDK.Models;
 
@@ -28,8 +25,11 @@ public sealed class TrackingRuntimeHostedService : BackgroundService
     private readonly DeviceRegistry _deviceRegistry;
     private readonly ProtocolPluginManager _pluginManager;
 
-    private readonly PluginOptions _pluginOptions;
-    private readonly PluginManagerOptions _pluginManagerOptions;
+    private readonly PluginLifecycleManager _pluginLifecycleManager;
+
+    // Fallback used only if no enabled plugin declares a DefaultPort
+    // (should not normally happen, kept for safety).
+    private const int FallbackPort = 5001;
 
     public TrackingRuntimeHostedService(
         ILogger<TrackingRuntimeHostedService> logger,
@@ -39,8 +39,7 @@ public sealed class TrackingRuntimeHostedService : BackgroundService
         DeviceStateService deviceStateService,
         DeviceRegistry deviceRegistry,
         ProtocolPluginManager pluginManager,
-        IOptions<PluginOptions> pluginOptions,
-        IOptions<PluginManagerOptions> pluginManagerOptions)
+        PluginLifecycleManager pluginLifecycleManager)
     {
         _logger = logger;
 
@@ -50,9 +49,7 @@ public sealed class TrackingRuntimeHostedService : BackgroundService
         _deviceStateService = deviceStateService;
         _deviceRegistry = deviceRegistry;
         _pluginManager = pluginManager;
-
-        _pluginOptions = pluginOptions.Value;
-        _pluginManagerOptions = pluginManagerOptions.Value;
+        _pluginLifecycleManager = pluginLifecycleManager;
     }
 
     protected override async Task ExecuteAsync(
@@ -62,152 +59,43 @@ public sealed class TrackingRuntimeHostedService : BackgroundService
             "Tracking Runtime Started");
 
         // =====================================================
-        // Resolve plugin paths
+        // Load signed installed plugins through lifecycle manager
         // =====================================================
-
-        var pluginPath =
-            ResolvePluginRootPath(
-                _pluginOptions.RootPath);
-
-        var installedPluginPath =
-            ResolvePluginRootPath(
-                _pluginManagerOptions.InstalledPluginsPath);
-
-        _logger.LogInformation(
-            "Development plugin directory: {PluginPath}",
-            pluginPath);
-
-        _logger.LogInformation(
-            "Installed plugin directory: {InstalledPluginPath}",
-            installedPluginPath);
-
-        _logger.LogInformation(
-            "Development plugin directory exists: {Exists}",
-            Directory.Exists(pluginPath));
-
-        _logger.LogInformation(
-            "Installed plugin directory exists: {Exists}",
-            Directory.Exists(installedPluginPath));
-
-        // =====================================================
-        // Load plugins
-        // =====================================================
-
-        var loader =
-            new Tracking.PluginLoader.Services.PluginLoader();
 
         try
         {
-            IReadOnlyList<Tracking.SDK.Interfaces.IProtocolPlugin> plugins;
-
-            if (_pluginManagerOptions.LoadEnabledOnly)
-            {
-                // =================================================
-                // PRODUCTION PLUGIN LOADING
-                //
-                // InstalledPluginStore is the source of truth.
-                //
-                // Runtime loads ONLY:
-                //   data/plugins/{pluginId}
-                //
-                // and ONLY when manifest.json has:
-                //   "enabled": true
-                //
-                // The development plugins directory is NOT used
-                // when LoadEnabledOnly=true.
-                // =================================================
-
-                var installedStore =
-                    new InstalledPluginStore(
-                        installedPluginPath);
-
-                var installed =
-                    installedStore.GetAll();
-
-                _logger.LogInformation(
-                    "Installed plugins found: {Count}",
-                    installed.Count);
-
-                foreach (var installedPlugin in installed)
-                {
-                    _logger.LogInformation(
-                        "Installed Plugin: {Id} | {Name} | Version={Version} | Enabled={Enabled}",
-                        installedPlugin.Id,
-                        installedPlugin.Name,
-                        installedPlugin.Version,
-                        installedPlugin.Enabled);
-                }
-
-                var enabledPluginIds =
-                    installed
-                        .Where(x => x.Enabled)
-                        .Select(x => x.Id)
-                        .ToHashSet(
-                            StringComparer.OrdinalIgnoreCase);
-
-                _logger.LogInformation(
-                    "Enabled installed plugins: {Count}",
-                    enabledPluginIds.Count);
-
-                // =================================================
-                // IMPORTANT
-                //
-                // Load directly from the installed plugin store.
-                //
-                // Do NOT load from:
-                //     plugins/
-                //
-                // The installed directory is the runtime source.
-                // =================================================
-
-                plugins =
-                    await loader.LoadAsync(
-                        installedPluginPath,
-                        enabledPluginIds,
-                        stoppingToken);
-            }
-            else
-            {
-                // =================================================
-                // DEVELOPMENT MODE
-                //
-                // When LoadEnabledOnly=false, the development
-                // plugins directory can be loaded normally.
-                // =================================================
-
-                plugins =
-                    await loader.LoadAsync(
-                        pluginPath,
-                        stoppingToken);
-            }
-
-            _pluginManager.Register(plugins);
+            var loadedPlugins =
+                await _pluginLifecycleManager.LoadAllEnabledAsync(
+                    stoppingToken);
 
             _logger.LogInformation(
-                "Plugins Loaded: {Count}",
-                plugins.Count);
+                "Enabled installed plugins loaded: {Count}",
+                loadedPlugins.Count);
 
-            foreach (var plugin in plugins)
+            foreach (var plugin in loadedPlugins)
             {
                 _logger.LogInformation(
                     "Plugin: {Id} | {Name} | Version={Version}",
-                    plugin.Manifest.Id,
-                    plugin.Manifest.Name,
-                    plugin.Manifest.Version);
+                    plugin.PluginId,
+                    plugin.Name,
+                    plugin.Version);
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(
                 ex,
-                "Failed to load plugins from {PluginPath}",
-                pluginPath);
+                "Failed to load signed installed plugins.");
 
             throw;
         }
 
         // =====================================================
-        // Packet Pipeline
+        // Packet Pipeline (shared across every listening port —
+        // protocol detection is content-based via CanHandle, not
+        // port-based, so any plugin can technically be reached on
+        // any open port; separate ports simply match each device
+        // family's factory/default server-port configuration).
         // =====================================================
 
         var pipeline =
@@ -237,14 +125,10 @@ public sealed class TrackingRuntimeHostedService : BackgroundService
                 _alarmChannel);
 
         // =====================================================
-        // TCP Server
+        // Shared event handlers (attached to every TCP listener)
         // =====================================================
 
-        var server =
-            new TcpTrackingServer(
-                5001);
-
-        server.ClientDisconnected += async session =>
+        async Task OnClientDisconnectedAsync(ClientSession session)
         {
             try
             {
@@ -298,11 +182,11 @@ public sealed class TrackingRuntimeHostedService : BackgroundService
                     ex,
                     "Error while processing client disconnect.");
             }
-        };
+        }
 
-        server.PacketReceived += async (
-            session,
-            packet) =>
+        async Task OnPacketReceivedAsync(
+            ClientSession session,
+            ReadOnlyMemory<byte> packet)
         {
             try
             {
@@ -338,11 +222,10 @@ public sealed class TrackingRuntimeHostedService : BackgroundService
 
                 if (message.Type ==
                         MessageType.Login &&
-                    session is ClientSession loginSession &&
                     !string.IsNullOrWhiteSpace(
                         message.DeviceId))
                 {
-                    loginSession.DeviceId =
+                    session.DeviceId =
                         message.DeviceId;
                 }
 
@@ -353,15 +236,14 @@ public sealed class TrackingRuntimeHostedService : BackgroundService
 
                 if (string.IsNullOrWhiteSpace(
                         message.DeviceId) &&
-                    session is ClientSession clientSession &&
                     !string.IsNullOrWhiteSpace(
-                        clientSession.DeviceId))
+                        session.DeviceId))
                 {
                     message =
                         message with
                         {
                             DeviceId =
-                                clientSession.DeviceId
+                                session.DeviceId
                         };
                 }
 
@@ -380,39 +262,63 @@ public sealed class TrackingRuntimeHostedService : BackgroundService
                     ex,
                     "Error while processing received packet.");
             }
-        };
+        }
 
         // =====================================================
-        // Start TCP Server
+        // TCP Servers — one listener per distinct DefaultPort
+        // among currently enabled plugins.
         // =====================================================
 
-        _logger.LogInformation(
-            "Starting TCP Tracking Server on port 5001");
+        var ports = _pluginManager.GetEnabledPlugins()
+            .Select(p => p.Manifest.DefaultPort)
+            .Where(port => port > 0)
+            .Distinct()
+            .ToList();
 
-        await server.StartAsync(
-            stoppingToken);
+        if (ports.Count == 0)
+        {
+            _logger.LogWarning(
+                "No enabled plugin declares a DefaultPort. Falling back to port {Port}.",
+                FallbackPort);
 
-        _logger.LogInformation(
-            "TCP Tracking Server started on port 5001");
+            ports.Add(FallbackPort);
+        }
+
+        var listenerTasks = new List<Task>();
+
+        foreach (var port in ports)
+        {
+            var server = new TcpTrackingServer(port);
+
+            server.ClientDisconnected += OnClientDisconnectedAsync;
+            server.PacketReceived += OnPacketReceivedAsync;
+
+            _logger.LogInformation(
+                "Starting TCP Tracking Server on port {Port}",
+                port);
+
+            listenerTasks.Add(server.StartAsync(stoppingToken));
+
+            _logger.LogInformation(
+                "TCP Tracking Server started on port {Port}",
+                port);
+        }
 
         // =====================================================
-        // Keep Runtime Alive
+        // Keep Runtime Alive (each StartAsync already blocks
+        // internally until cancellation; awaiting all of them
+        // keeps this hosted service alive for as long as any
+        // listener is running).
         // =====================================================
 
         try
         {
-            await Task.Delay(
-                Timeout.Infinite,
-                stoppingToken);
+            await Task.WhenAll(listenerTasks);
         }
         catch (OperationCanceledException)
         {
             // Normal shutdown.
         }
-
-        // =====================================================
-        // Stop TCP Server
-        // =====================================================
 
         _logger.LogInformation(
             "Tracking Runtime Stopped");
